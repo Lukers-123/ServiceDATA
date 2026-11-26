@@ -210,7 +210,7 @@ input[type=date].inp{display:block}
 'use strict';
 /* =========================================================================
    ServiceDATA Mobil  –  Datenerfassung vor Ort (offline)
-   Version 1.0
+   Version 1.1 (Installationen abrufen)
    - Daten bleiben im Gerät (IndexedDB), auch ohne Netz.
    - "An ServiceDATA senden" erzeugt eine ZIP-Datei (erfassung.json + fotos/),
      die über das Teilen-Menü in den gemeinsamen OneDrive-Ordner
@@ -220,7 +220,7 @@ input[type=date].inp{display:block}
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '1.0';
+const VERSION = '1.1';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -259,6 +259,10 @@ const IC = {
   dl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
   light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>'
 };
 
@@ -296,7 +300,9 @@ const LAENDER = { 'Deutschland': ['Baden-Württemberg', 'Bayern', 'Berlin', 'Bra
 
 const blankDaten = () => ({ datum: today(), ort: '', floor: '', bank: '', land: '', bundesland: '', orderNr: '', techniker: [S.user].filter(Boolean), status: 'installiert', inBearbeitung: false, stoerungText: '', kontakte: [], geraete: [], notizen: '', einstellungen: '' });
 const newErf = (daten, basis) => ({ id: uid(), erstelltAm: new Date().toISOString(), geaendertAm: new Date().toISOString(), von: S.user, basisId: basis?.id || '', basisRev: basis?.rev || 0, basis: basis ? basisSnap(basis) : null, daten, fotos: [], gesendetAm: '', gesendetStand: '' });
-const basisSnap = b => { const x = clone(b); delete x.id; delete x.rev; return x; };
+const DATEN_KEYS = ['datum', 'mehrtaegig', 'datumBis', 'ort', 'floor', 'bank', 'land', 'bundesland', 'orderNr', 'techniker', 'status', 'inBearbeitung', 'stoerungText', 'kontakte', 'geraete', 'notizen', 'einstellungen'];
+const pickDaten = b => { const x = {}; for (const k of DATEN_KEYS) if (b[k] !== undefined) x[k] = clone(b[k]); x.geraete = (x.geraete || []).map(g => ({ id: g.id, gehaeuseId: g.gehaeuseId || '', seriennummer: g.seriennummer || '', software: g.software || '', dongle: g.dongle || '', notiz: g.notiz || '' })); x.kontakte = (x.kontakte || []).filter(k => k.name || k.telefon || k.email).map(k => ({ name: k.name || '', rolle: k.rolle || '', telefon: k.telefon || '', email: k.email || '' })); return x; };
+const basisSnap = b => pickDaten(b);
 const erfTitle = e => e.daten.ort ? `${e.daten.ort}${e.daten.bank ? ' · Bank ' + e.daten.bank : ''}` : 'Neue Installation';
 const sig = e => JSON.stringify([e.daten, e.fotos.map(f => [f.id, f.titel, f.geraetId])]);
 const erfState = e => !e.gesendetAm ? 'entwurf' : (sig(e) !== e.gesendetStand ? 'geaendert' : 'gesendet');
@@ -369,7 +375,7 @@ async function importStamm() {
     const j = JSON.parse(await f.text());
     if (j.format !== STAMM_FORMAT) throw new Error('Das ist keine ServiceDATA-Mobil-Datei.');
     await kvSet('stamm', j); S.stamm = j;
-    toast(`Daten geladen: ${j.produkte?.length || 0} Produkte, ${j.locations?.length || 0} Locations, ${j.einsaetze?.length || 0} Einsätze`);
+    toast(`Daten geladen: ${j.installationen?.length || 0} Installationen, ${j.produkte?.length || 0} Produkte, ${j.einsaetze?.length || 0} Einsätze`);
     return true;
   } catch (e) { toast('Datei konnte nicht gelesen werden: ' + e.message, true, 4000); return false; }
 }
@@ -386,6 +392,7 @@ async function route() {
   }
   await flushSave(); S.cur = null;
   if (v === 'einstellungen') return renderSettings();
+  if (v === 'i') return id ? renderInstall(decodeURIComponent(id), sub ? decodeURIComponent(sub) : '') : renderInstalls();
   return renderHome();
 }
 addEventListener('hashchange', route);
@@ -424,6 +431,7 @@ async function renderHome() {
   <main>
     ${isIOS && !standalone() ? `<div class="card ios-tip">${IC.alert}<div class="hint"><b>Tipp:</b> Für den Offline-Betrieb die App auf den Home-Bildschirm legen: in Safari unten auf <span class="kbd-share">${IC.share}</span> <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>. Sonst kann iOS die Daten nach einiger Zeit löschen.</div></div>` : ''}
     <button class="btn pri big" id="hNew">${IC.plus} Neue Installation erfassen</button>
+    ${S.stamm?.installationen?.length ? `<button class="btn big" id="hInst" style="margin-top:10px">${IC.search} Installationen suchen</button>` : ''}
     ${mine.length ? `<div class="sec-t">Meine geplanten Einsätze</div>${mine.slice(0, 12).map(einsatzItem).join('')}` : ''}
     ${offen.length ? `<div class="sec-t">In Arbeit</div>${offen.map(erfItem).join('')}` : ''}
     ${others.length ? `<div class="sec-t">Weitere geplante Einsätze</div>${others.slice(0, 15).map(einsatzItem).join('')}` : ''}
@@ -433,25 +441,31 @@ async function renderHome() {
     <div class="foot">ServiceDATA Mobil ${VERSION}${S.stamm ? ` · Daten vom ${esc(fmtDT(S.stamm.erstelltAm))}` : ''}</div>
   </main>`;
   $('#hSet').onclick = () => go('#/einstellungen');
+  $('#hInst') && ($('#hInst').onclick = () => go('#/i'));
   $('#hNew').onclick = async () => { const e = newErf(blankDaten()); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`); };
   $('#hStamm') && ($('#hStamm').onclick = async () => { if (await importStamm()) renderHome(); });
   $$('[data-erf]').forEach(b => b.onclick = () => go(`#/e/${b.dataset.erf}/ort`));
   $$('[data-plan]').forEach(b => b.onclick = () => startPlanned(b.dataset.plan));
   for (const el of $$('[data-ph]')) photoUrl(el.dataset.ph).then(u => { if (u) el.innerHTML = `<img src="${u}" alt="" style="object-fit:cover;background:#000">`; });
 }
+const basisById = id => (S.stamm?.installationen || []).find(z => z.id === id) || (S.stamm?.einsaetze || []).find(z => z.id === id);
+async function startFrom(x, keepStatus) {
+  const open = (await erfAll()).find(e => e.basisId === x.id && erfState(e) !== 'gesendet');
+  if (open) { S.cur = open; return go(`#/e/${open.id}/ort`); }
+  const d = Object.assign(blankDaten(), pickDaten(x));
+  d.techniker = uniq([...(d.techniker || []), S.user]);
+  if (!keepStatus && d.status === 'geplant') d.status = 'installiert';
+  d.geraete = d.geraete.map(g => ({ ...g, id: g.id || uid(), gehaeuseName: '' }));
+  const e = newErf(d, x); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`);
+}
 async function startPlanned(id) {
-  const x = S.stamm.einsaetze.find(z => z.id === id); if (!x) return;
+  const x = basisById(id); if (!x) return;
   const ok = await sheet(`<h3>${esc(x.ort || 'Einsatz')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</h3>
     <dl class="sum"><dt>Datum</dt><dd>${esc(fmtDate(x.datum))}${x.datumBis ? ' – ' + esc(fmtDate(x.datumBis)) : ''}</dd>${x.floor ? `<dt>Floor</dt><dd>${esc(x.floor)}</dd>` : ''}${x.orderNr ? `<dt>Order</dt><dd>${esc(x.orderNr)}</dd>` : ''}<dt>Techniker</dt><dd>${esc((x.techniker || []).join(', ') || '–')}</dd><dt>Maschinen</dt><dd>${(x.geraete || []).length}</dd></dl>
     ${x.notizen ? `<p class="hint" style="white-space:pre-wrap">${esc(x.notizen)}</p>` : ''}
     <div class="btns" style="margin-top:16px"><button class="btn pri big" data-close="go">Einsatz erfassen</button><button class="btn" data-close="">Abbrechen</button></div>`);
   if (ok !== 'go') return;
-  const d = Object.assign(blankDaten(), clone(x)); delete d.id; delete d.rev;
-  d.techniker = uniq([...(d.techniker || []), S.user]);
-  if (d.status === 'geplant') d.status = 'installiert';
-  d.geraete = (d.geraete || []).map(g => ({ id: g.id || uid(), gehaeuseId: g.gehaeuseId || '', gehaeuseName: '', seriennummer: g.seriennummer || '', software: g.software || '', dongle: g.dongle || '', notiz: g.notiz || '' }));
-  d.kontakte = (d.kontakte || []).filter(k => k.name || k.telefon || k.email);
-  const e = newErf(d, x); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`);
+  startFrom(x, false);
 }
 
 /* ---------------- Erfassung ---------------- */
@@ -674,6 +688,74 @@ async function pickProduct(g) {
   markDirty(); return true;
 }
 
+
+/* ---------------- Installationen abrufen (aus ServiceDATA) ---------------- */
+const instText = x => [x.ort, x.floor, x.bank && 'bank ' + x.bank, x.orderNr, x.land, x.bundesland, x.jurisdiction, x.notizen, x.einstellungen, x.stoerungText, ...(x.techniker || []),
+  ...(x.geraete || []).flatMap(g => [g.seriennummer, g.software, g.dongle, g.notiz, prodById(g.gehaeuseId)?.name || g.gehaeuseName]), ...(x.kontakte || []).flatMap(k => [k.name, k.rolle, k.telefon, k.email]),
+  ...(x.zubehoer || []).flatMap(z => [z.name, z.seriennummer])].filter(Boolean).join(' ').toLowerCase();
+const snEq = (a, b) => String(a || '').trim().toUpperCase() === String(b || '').trim().toUpperCase();
+const ST_TAG = x => x.status === 'stoerung' ? '<span class="tag entwurf" style="background:rgba(255,107,107,.2);color:var(--red)">Störung</span>' : x.status === 'geplant' ? '<span class="tag geplant">Geplant</span>' : '<span class="tag gesendet">Installiert</span>';
+function renderInstalls() {
+  const all = (S.stamm?.installationen || []).slice().sort((a, b) => (b.datum || '').localeCompare(a.datum || ''));
+  S.iq ??= '';
+  $('#app').innerHTML = `<div class="top"><div class="top-row"><button class="ibtn" id="iBack" aria-label="Zurück">${IC.back}</button><h1>Installationen</h1></div>
+    <div class="withbtn" style="padding:4px 0 6px"><input class="inp" id="iQ" type="search" placeholder="Location, Bank, Seriennummer, Order …" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button class="scanbtn" id="iScan" aria-label="Seriennummer scannen">${IC.scan}</button></div></div>
+    <main id="iList"></main>`;
+  const q = $('#iQ'); q.value = S.iq;
+  const draw = () => {
+    const words = S.iq.toLowerCase().split(/\s+/).filter(Boolean);
+    const hits = words.length ? all.filter(x => { const t = x._t ||= instText(x); return words.every(w => t.includes(w)); }) : all;
+    $('#iList').innerHTML = `<div class="hint" style="margin:0 4px 10px">${hits.length} von ${all.length} Installationen · Stand ${esc(fmtDT(S.stamm.erstelltAm))}</div>
+      ${hits.slice(0, 150).map(x => { const sn = words.length && (x.geraete || []).find(g => words.some(w => String(g.seriennummer || '').toLowerCase().includes(w)));
+        return `<button class="item" data-iid="${esc(x.id)}"><span class="ic">${IC.pin}</span><span class="tx"><div class="t1">${esc(x.ort || 'Ohne Location')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</div><div class="t2">${ST_TAG(x)}${esc(fmtDate(x.datum))} · ${(x.geraete || []).length} Masch.${x.orderNr ? ' · Order ' + esc(x.orderNr) : ''}</div>${sn ? `<div class="t2" style="color:var(--yellow)">SN ${esc(sn.seriennummer)}</div>` : ''}</span><span class="chev">${IC.chev}</span></button>`; }).join('')}
+      ${!hits.length ? `<div class="empty">Nichts gefunden.${words.length ? '' : ''}</div>` : ''}`;
+    $$('[data-iid]').forEach(b => b.onclick = () => go('#/i/' + encodeURIComponent(b.dataset.iid) + (words.length ? '/' + encodeURIComponent(S.iq) : '')));
+  };
+  q.oninput = () => { S.iq = q.value; draw(); };
+  q.onkeydown = ev => { if (ev.key === 'Enter') q.blur(); };
+  $('#iBack').onclick = () => go('#/');
+  $('#iScan').onclick = async () => {
+    const v = await scanner('Seriennummer suchen'); if (!v) return;
+    S.iq = v; q.value = v;
+    const exact = all.filter(x => (x.geraete || []).some(g => snEq(g.seriennummer, v)) || (x.zubehoer || []).some(z => snEq(z.seriennummer, v)));
+    if (exact.length === 1) return go('#/i/' + encodeURIComponent(exact[0].id) + '/' + encodeURIComponent(v));
+    draw();
+  };
+  draw();
+}
+async function renderInstall(id, hl) {
+  const x = basisById(id);
+  if (!x) { toast('Installation nicht gefunden', true); return go('#/i'); }
+  const loc = [x.floor && 'Floor ' + x.floor, x.bundesland, x.land].filter(Boolean).join(' · ');
+  const dt = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '';
+  const hlW = String(hl || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const isHl = g => hlW.length && hlW.some(w => [g.seriennummer, g.dongle].some(v => String(v || '').toLowerCase().includes(w)));
+  const open = (await erfAll()).find(e => e.basisId === x.id && erfState(e) !== 'gesendet');
+  $('#app').innerHTML = `<div class="top"><div class="top-row"><button class="ibtn" id="dBack" aria-label="Zurück">${IC.back}</button><h1>${esc(x.ort || 'Installation')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</h1></div></div><main>
+    <div class="card"><div style="margin-bottom:10px">${ST_TAG(x)}${x.inBearbeitung ? '<span class="tag geaendert">In Bearbeitung</span>' : ''}</div>
+      <dl class="sum">${dt('Datum', fmtDate(x.datum) + (x.mehrtaegig && x.datumBis ? ' – ' + fmtDate(x.datumBis) : ''))}${dt('Ort', loc)}${dt('Order-Nr.', x.orderNr)}${dt('Jurisdiction', x.jurisdiction)}${dt('Techniker', (x.techniker || []).join(', '))}${dt('Geändert', x.geaendertAm ? fmtDT(x.geaendertAm) + (x.geaendertVon ? ' · ' + x.geaendertVon : '') : '')}</dl>
+      ${x.status === 'stoerung' && x.stoerungText ? `<div class="warn" style="margin:12px 0 0">${esc(x.stoerungText)}</div>` : ''}</div>
+    <div class="sec-t">Maschinen (${(x.geraete || []).length})</div>
+    ${(x.geraete || []).map((g, i) => { const p = prodById(g.gehaeuseId); return `<div class="mcard" ${isHl(g) ? 'style="border-color:var(--yellow);box-shadow:0 0 0 2px rgba(255,204,0,.35)" data-hl' : ''}><span class="num">${i + 1}</span><span class="thumb">${p?.bild ? `<img src="${p.bild}" alt="">` : IC.machine}</span><span class="tx"><div class="t1">${esc(p?.name || g.gehaeuseName || 'Gehäuse unbekannt')}</div>
+      <div class="kv"><span>SN <b>${esc(g.seriennummer || '–')}</b></span>${g.software ? `<span>SW <b>${esc(g.software)}</b></span>` : ''}${g.dongle ? `<span>Dongle <b>${esc(g.dongle)}</b></span>` : ''}</div>${g.notiz ? `<div class="kv">${esc(g.notiz)}</div>` : ''}</span></div>`; }).join('') || '<div class="empty">Keine Maschinen</div>'}
+    ${(x.zubehoer || []).length ? `<div class="card"><h2>LED / Zubehör</h2>${x.zubehoer.map(z => `<div class="chk ok" style="padding:4px 0">${IC.check}${esc((z.anzahl > 1 ? z.anzahl + '× ' : '') + (z.name || 'Produkt'))}${z.seriennummer ? ' · SN ' + esc(z.seriennummer) : ''}</div>`).join('')}</div>` : ''}
+    ${x.progressive && (x.progLevels || []).length ? `<div class="card"><h2>Progressive</h2><dl class="sum">${x.progLevels.map(l => `<dt>${esc(l.level || 'Jackpot')}</dt><dd>${esc([l.start && 'Start ' + l.start, l.aktuell && 'Eingestellt ' + l.aktuell].filter(Boolean).join(' · ') || '–')}</dd>`).join('')}</dl>${x.progNotiz ? `<p class="hint" style="white-space:pre-wrap">${esc(x.progNotiz)}</p>` : ''}</div>` : ''}
+    ${(x.kontakte || []).length ? `<div class="sec-t">Ansprechpartner</div>${x.kontakte.map(k => `<div class="card" style="padding:12px 14px"><div style="font-weight:700">${esc(k.name || '–')}</div>${k.rolle ? `<div class="hint">${esc(k.rolle)}</div>` : ''}
+      <div class="btns two" style="margin-top:10px">${k.telefon ? `<a class="btn slim" href="tel:${esc(k.telefon.replace(/[^\d+]/g, ''))}">${IC.phone} Anrufen</a>` : ''}${k.email ? `<a class="btn slim" href="mailto:${esc(k.email)}">${IC.mail} E-Mail</a>` : ''}</div>${k.telefon ? `<div class="hint" style="margin-top:6px">${esc(k.telefon)}${k.email ? ' · ' + esc(k.email) : ''}</div>` : ''}</div>`).join('')}` : ''}
+    ${x.notizen ? `<div class="card"><h2>Notizen</h2><div style="white-space:pre-wrap">${esc(x.notizen)}</div></div>` : ''}
+    ${x.einstellungen ? `<div class="card"><h2>Einstellungen</h2><div style="white-space:pre-wrap">${esc(x.einstellungen)}</div></div>` : ''}
+    ${(x.fotos || []).length ? `<div class="card"><h2>Fotos</h2><div class="pgrid">${x.fotos.map((f, i) => `<button class="ph" data-fi="${i}"><img src="${f.bild}" alt="" loading="lazy">${f.titel ? `<span>${esc(f.titel)}</span>` : ''}</button>`).join('')}</div>${x.fotosMehr ? `<p class="hint" style="margin-top:8px">+ ${x.fotosMehr} weitere Fotos am PC</p>` : ''}</div>` : ''}
+  </main>
+  <div class="bar"><button class="btn pri" id="dEdit">${IC.edit} ${open ? 'Erfassung fortsetzen' : 'Ergänzen / ändern'}</button></div>`;
+  $('#dBack').onclick = () => history.length > 1 ? history.back() : go('#/i');
+  $('[data-hl]')?.scrollIntoView({ block: 'center' });
+  $$('[data-fi]').forEach(b => b.onclick = () => { const f = x.fotos[+b.dataset.fi]; const el = document.createElement('div'); el.className = 'lb'; el.innerHTML = `<div class="top-row" style="padding:calc(var(--st) + 6px) 8px 6px"><button class="ibtn" aria-label="Schließen">${IC.close}</button></div><img src="${f.bild}" alt="">${f.titel ? `<div class="lbb">${esc(f.titel)}</div>` : ''}`; el.onclick = () => el.remove(); document.body.append(el); });
+  $('#dEdit').onclick = async () => {
+    if (!open && !await confirmSheet('Installation ergänzen?', 'Du erfasst Änderungen und Ergänzungen (z. B. neue Maschinen, Fotos, Seriennummern) auf dem iPhone. Beim Senden übernimmt ServiceDATA nur, was du hier änderst.', 'Ergänzen')) return;
+    startFrom(x, true);
+  };
+}
+
 /* ---------------- Fotos ---------------- */
 async function addPhotos(files, g) {
   if (!files?.length) return; const e = S.cur;
@@ -839,7 +921,7 @@ async function renderSettings() {
   $('#app').innerHTML = `<div class="top"><div class="top-row"><button class="ibtn" id="sBack" aria-label="Zurück">${IC.back}</button><h1>Einstellungen</h1></div></div><main>
     <div class="card"><div class="f"><label for="sName">Dein Name</label><input class="inp" id="sName" value="${esc(S.user)}" autocomplete="name"></div></div>
     <div class="card"><h2>Daten aus ServiceDATA</h2>
-      ${S.stamm ? `<dl class="sum" style="margin-bottom:12px"><dt>Stand</dt><dd>${esc(fmtDT(S.stamm.erstelltAm))}${S.stamm.von ? ' · ' + esc(S.stamm.von) : ''}</dd><dt>Produkte</dt><dd>${S.stamm.produkte?.length || 0}</dd><dt>Locations</dt><dd>${S.stamm.locations?.length || 0}</dd><dt>Einsätze</dt><dd>${S.stamm.einsaetze?.length || 0}</dd></dl>` : `<p class="hint">Noch nicht geladen.</p>`}
+      ${S.stamm ? `<dl class="sum" style="margin-bottom:12px"><dt>Stand</dt><dd>${esc(fmtDT(S.stamm.erstelltAm))}${S.stamm.von ? ' · ' + esc(S.stamm.von) : ''}</dd><dt>Produkte</dt><dd>${S.stamm.produkte?.length || 0}</dd><dt>Locations</dt><dd>${S.stamm.locations?.length || 0}</dd><dt>Einsätze</dt><dd>${S.stamm.einsaetze?.length || 0}</dd><dt>Installationen</dt><dd>${S.stamm.installationen?.length || 0}</dd></dl>` : `<p class="hint">Noch nicht geladen.</p>`}
       <button class="btn" id="sStamm">${IC.dl} ${S.stamm ? 'Neu laden' : 'Laden'}</button>
       <p class="hint" style="margin-top:10px">Am PC in ServiceDATA: <b>iPhone-Erfassung › Daten fürs iPhone erstellen</b>. Hier dann die Datei <b>ServiceDATA-Mobil-Daten.json</b> aus OneDrive (Ordner ServiceDATA › mobil) auswählen.</p></div>
     <div class="card"><h2>Speicher</h2><dl class="sum"><dt>Erfassungen</dt><dd>${list.length}</dd><dt>Fotos</dt><dd>${list.reduce((s, e) => s + e.fotos.length, 0)}</dd>${est?.usage != null ? `<dt>Belegt</dt><dd>${(est.usage / 1048576).toFixed(1).replace('.', ',')} MB</dd>` : ''}<dt>Dauerhaft</dt><dd>${persisted ? 'ja' : (standalone() ? 'nein' : 'nein – App auf Home-Bildschirm legen')}</dd></dl>
