@@ -185,7 +185,45 @@ input[type=date].inp{display:block}
 
 /* Start */
 .hero{text-align:center;padding:26px 8px 6px}
-.hero img.sun{width:110px;height:110px}
+.hero .sun-stage{width:150px;margin:6px auto 14px}
+/* Sonne & Animationen (wie ServiceDATA am PC) */
+.sun{position:relative;aspect-ratio:1;display:block}
+.sun img{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.sun .rays{animation:spin 70s linear infinite;will-change:transform}
+.sun .wink{opacity:0}.sun.winking .wink{opacity:1}.sun.winking .face:not(.wink){opacity:0}
+.sun.hop{animation:sunHop .9s cubic-bezier(.2,.8,.2,1)}
+.sun.landed{animation:land .7s cubic-bezier(.2,.8,.2,1)}
+.top .brand .sun{width:38px;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sunIn{from{opacity:0;transform:scale(.3) rotate(-120deg)}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-4deg)}}
+@keyframes glowPulse{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes land{0%{transform:scale(1)}35%{transform:scale(1.28)}65%{transform:scale(.93)}100%{transform:scale(1)}}
+@keyframes sunHop{0%{transform:none}30%{transform:translateY(-7px) rotate(-200deg) scale(1.12)}60%{transform:translateY(0) rotate(-360deg) scale(.96)}80%{transform:rotate(-360deg) scale(1.04)}100%{transform:rotate(-360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}}
+.sun-stage{position:relative;aspect-ratio:1}
+.sun-stage::before{content:'';position:absolute;inset:-22%;border-radius:50%;background:radial-gradient(circle,rgba(255,204,0,.30),transparent 62%);animation:glowPulse 6s ease-in-out infinite;pointer-events:none}
+.sun-stage .sun{position:relative;z-index:1;width:100%;animation:sunIn 1.1s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 12px 34px rgba(255,190,0,.35))}
+.sun-stage .sun .face{animation:bob 5.5s ease-in-out 1.2s infinite}
+.beams{position:fixed;left:50%;top:30%;width:1700px;height:1700px;margin:-850px 0 0 -850px;border-radius:50%;background:repeating-conic-gradient(rgba(255,204,0,.05) 0 4.5deg,transparent 4.5deg 15deg);-webkit-mask:radial-gradient(circle,#000 6%,transparent 52%);mask:radial-gradient(circle,#000 6%,transparent 52%);animation:spin 160s linear infinite;pointer-events:none;z-index:0}
+.hero,.hero~*{position:relative;z-index:1}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+#splash .sun-stage{width:150px}
+#splash b{font-size:26px;letter-spacing:.3px;animation:fadeUp .6s .35s both}
+#splash small{color:var(--muted);animation:fadeUp .6s .5s both;margin-top:-12px}
+#splash.leaving b,#splash.leaving small,#splash.leaving .beams,#splash.leaving .sun-stage::before{transition:opacity .25s;opacity:0}
+.sun-fly{position:fixed;z-index:120;pointer-events:none;margin:0;filter:drop-shadow(0 8px 30px rgba(255,204,0,.35))}
+main.page-in{animation:fadeUp .35s cubic-bezier(.2,.8,.2,1) both}
+main.page-in>.item,main.page-in>.mcard,main.page-in>.card,main.page-in>.btn,main.page-in>.sec-t,main.page-in>.btns{animation:fadeUp .45s cubic-bezier(.2,.8,.2,1) both}
+main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){animation-delay:.06s}main.page-in>:nth-child(4){animation-delay:.09s}main.page-in>:nth-child(5){animation-delay:.12s}main.page-in>:nth-child(6){animation-delay:.15s}main.page-in>:nth-child(7){animation-delay:.18s}main.page-in>:nth-child(n+8){animation-delay:.21s}
+.top-load{position:fixed;left:0;top:0;height:3px;width:100%;z-index:95;background:linear-gradient(90deg,transparent,var(--yellow),transparent);background-size:50% 100%;background-repeat:no-repeat;animation:loadbar 1s linear infinite;pointer-events:none}
+@keyframes loadbar{from{background-position:-50% 0}to{background-position:150% 0}}
+.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:96}
+.scan .frame.hit{border-color:var(--green);box-shadow:0 0 0 9999px rgba(0,0,0,.5),0 0 30px rgba(47,191,113,.8)}
+.toast{animation:toastIn .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,16px) scale(.96)}}
+.btn:active,.item:active,.mcard:active,.chip:active,.gtile:active{transform:scale(.975);transition:transform .08s}
+.btn,.item,.mcard,.chip,.gtile{transition:transform .2s cubic-bezier(.2,.8,.2,1),background .15s}
 .hero h1{margin:8px 0 2px;font-size:28px}
 .hero p{color:var(--muted);margin:0 0 18px}
 .ios-tip{display:flex;gap:12px;align-items:flex-start}
@@ -206,11 +244,12 @@ input[type=date].inp{display:block}
 .chk svg{width:20px;height:20px;flex:none;margin-top:1px}
 .chk.ok svg{color:var(--green)} .chk.no svg{color:var(--orange)}
 @media (min-width:600px){.ggrid{grid-template-columns:repeat(3,1fr)}.pgrid{grid-template-columns:repeat(4,1fr)}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.beams{display:none}}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="splash"><div class="beams"></div><div class="sun-stage"><div class="sun"><img class="rays" src="icons/sun-rays.png" alt=""><img class="face" src="icons/sun-face.png" alt=""></div></div><b>ServiceDATA</b><small>Mobil</small></div>
 
 <script>
 'use strict';
@@ -226,7 +265,7 @@ input[type=date].inp{display:block}
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.2';
+const VERSION = '2.3';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -360,6 +399,55 @@ function pickFiles(accept, capture, multiple) {
   });
 }
 
+/* ---------------- Animationen (wie ServiceDATA am PC) ---------------- */
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function sunFun(kind = 'wink') {
+  const s = $('#hdrSun') || $('#heroSun'); if (!s || reducedMotion()) return;
+  if (kind === 'hop') { s.classList.remove('hop'); void s.offsetWidth; s.classList.add('hop'); setTimeout(() => { s.classList.remove('hop'); sunFun('wink'); }, 950); return; }
+  if (s.classList.contains('winking')) return; s.classList.add('winking'); setTimeout(() => s.classList.remove('winking'), 420);
+}
+document.addEventListener('click', e => { if (e.target.closest?.('#hdrSun, #heroSun')) sunFun('hop'); });
+function confetti(x = innerWidth / 2, y = innerHeight * .3, n = 130, spread = 1) {
+  if (reducedMotion()) return;
+  const dpr = devicePixelRatio || 1; const c = document.createElement('canvas'); c.className = 'confetti';
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr; document.body.append(c); const g = c.getContext('2d'); g.scale(dpr, dpr);
+  const cols = ['#FFCC00', '#FFD94D', '#F2CF0A', '#4d8dff', '#1f6feb', '#ffffff', '#FFB800'];
+  const P = Array.from({ length: n }, () => { const a = -Math.PI / 2 + (Math.random() - .5) * Math.PI * .9 * spread; const v = 5 + Math.random() * 8 * spread; return { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: Math.random() * 6.3, vr: (Math.random() - .5) * .3, w: 5 + Math.random() * 6, h: 8 + Math.random() * 8, col: cols[Math.random() * cols.length | 0], round: Math.random() < .25, wob: Math.random() * 6.3 }; });
+  const t0 = performance.now(), dur = 2100;
+  const step = t => {
+    const k = (t - t0) / dur; g.clearRect(0, 0, innerWidth, innerHeight);
+    for (const p of P) { p.vy += .3; p.vx *= .985; p.vy *= .985; p.x += p.vx + Math.sin((t - t0) / 160 + p.wob) * .6; p.y += p.vy; p.r += p.vr;
+      g.save(); g.globalAlpha = Math.max(0, 1 - Math.max(0, k - .65) / .35); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.col;
+      if (p.round) { g.beginPath(); g.arc(0, 0, p.h / 1.6, 0, 7); g.fill(); } else g.fillRect(-p.w / 2, -p.h / 2 * Math.abs(Math.cos(p.r * 2)), p.w, p.h * Math.abs(Math.cos(p.r * 2)) + .5);
+      g.restore(); }
+    if (k < 1) requestAnimationFrame(step); else c.remove();
+  };
+  requestAnimationFrame(step);
+}
+let loadN = 0;
+function busy(d) { loadN = Math.max(0, loadN + d); let el = $('.top-load'); if (loadN && !el) { el = document.createElement('div'); el.className = 'top-load'; document.body.append(el); } else if (!loadN) el?.remove(); }
+// sanfter Seitenübergang bei jedem Neuaufbau
+new MutationObserver(() => { const m = $('#app > main'); if (!m || m.dataset.anim) return; m.dataset.anim = '1'; if (!reducedMotion()) m.classList.add('page-in'); }).observe(document.getElementById('app'), { childList: true });
+async function splashOut() {
+  const sp = $('#splash'); if (!sp) return;
+  const from = $('.sun', sp), to = $('#hdrSun');
+  const done = () => sp.remove();
+  if (!from || !to || reducedMotion() || !Element.prototype.animate) { sp.style.transition = 'opacity .3s'; sp.style.opacity = 0; return setTimeout(done, 300); }
+  const a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
+  const fly = from.cloneNode(true); fly.removeAttribute('id'); fly.classList.add('sun-fly'); fly.style.animation = 'none';
+  Object.assign(fly.style, { left: a.left + 'px', top: a.top + 'px', width: a.width + 'px', height: a.height + 'px' });
+  document.body.append(fly); from.style.visibility = 'hidden'; to.style.visibility = 'hidden'; sp.classList.add('leaving');
+  const cx = b.left + b.width / 2, cy = b.top + b.height / 2, dx = cx - (a.left + a.width / 2), dy = cy - (a.top + a.height / 2), sc = b.width / a.width;
+  const T = 1100, ease = 'cubic-bezier(.65,0,.25,1)';
+  const anims = [
+    fly.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: 'translate(0,-16px) scale(1.12)', offset: .18 }, { transform: `translate(${dx}px,${dy}px) scale(${sc})` }], { duration: T, easing: ease, fill: 'forwards' }),
+    fly.querySelector('.rays').animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(720deg)' }], { duration: T, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }),
+    sp.animate([{ clipPath: `circle(${Math.hypot(innerWidth, innerHeight)}px at ${cx}px ${cy}px)` }, { clipPath: `circle(0px at ${cx}px ${cy}px)` }], { duration: T - 200, delay: 200, easing: 'cubic-bezier(.75,0,.3,1)', fill: 'forwards' })
+  ];
+  await Promise.all(anims.map(x => x.finished)).catch(() => { });
+  done(); fly.remove(); to.style.visibility = ''; to.classList.add('landed'); setTimeout(() => to.classList.remove('landed'), 800);
+}
+
 /* ---------------- Stammdaten aus ServiceDATA ---------------- */
 const prodById = id => S.stamm?.produkte?.find(p => p.id === id);
 const prodName = g => prodById(g.gehaeuseId)?.name || g.gehaeuseName || '';
@@ -382,7 +470,7 @@ async function importStamm() {
   try {
     const j = JSON.parse(await f.text());
     if (j.format !== STAMM_FORMAT) throw new Error('Das ist keine ServiceDATA-Mobil-Datei.');
-    await kvSet('stamm', j); S.stamm = j;
+    await kvSet('stamm', j); S.stamm = j; setTimeout(() => sunFun('hop'), 300);
     toast(`Daten geladen: ${j.installationen?.length || 0} Installationen, ${j.produkte?.length || 0} Produkte, ${j.einsaetze?.length || 0} Einsätze`);
     return true;
   } catch (e) { toast('Datei konnte nicht gelesen werden: ' + e.message, true, 4000); return false; }
@@ -410,7 +498,7 @@ const go = h => { if (location.hash === h) route(); else location.hash = h; };
 function renderWelcome() {
   const names = S.stamm?.techniker || [];
   $('#app').innerHTML = `<main>
-    <div class="hero"><img class="sun" src="icons/sun-96.png" alt=""><h1>ServiceDATA Mobil</h1><p>Installationen vor Ort erfassen – auch ohne Netz.</p></div>
+    <div class="beams"></div><div class="hero"><div class="sun-stage"><div class="sun" id="heroSun"><img class="rays" src="icons/sun-rays.png" alt=""><img class="face" src="icons/sun-face.png" alt=""><img class="face wink" src="icons/sun-face-wink.png" alt=""></div></div><h1>ServiceDATA Mobil</h1><p>Installationen vor Ort erfassen – auch ohne Netz.</p></div>
     <div class="card"><div class="f"><label for="wName">Dein Name (wie in ServiceDATA)</label><input class="inp" id="wName" autocomplete="name" placeholder="Vorname Nachname" enterkeyhint="done"></div>
     ${names.length ? `<div class="chips">${names.map(n => `<button class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : ''}</div>
     <div class="btns"><button class="btn pri big" id="wGo">Los geht's</button>
@@ -436,7 +524,7 @@ async function renderHome() {
   const fertig = S.list.filter(e => erfState(e) === 'gesendet');
   const einsatzItem = x => `<button class="item" data-plan="${esc(x.id)}"><span class="ic">${IC.cal}</span><span class="tx"><div class="t1">${esc(x.ort || 'Ohne Location')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</div><div class="t2"><span class="tag geplant">${esc(fmtDate(x.datum))}</span>${(x.geraete || []).length} Maschinen${x.orderNr ? ' · Order ' + esc(x.orderNr) : ''}</div></span><span class="chev">${IC.chev}</span></button>`;
   const erfItem = e => { const st = erfState(e); const first = e.fotos[0]; return `<button class="item" data-erf="${e.id}"><span class="ic" ${first ? `data-ph="${first.id}"` : ''}>${IC.machine}</span><span class="tx"><div class="t1">${esc(erfTitle(e))}</div><div class="t2"><span class="tag ${st}">${STATE_LBL[st]}</span>${esc(fmtDate(e.daten.datum))} · ${e.daten.geraete.length} Masch. · ${e.fotos.length} Fotos</div></span><span class="chev">${IC.chev}</span></button>`; };
-  $('#app').innerHTML = `<div class="top"><div class="top-row"><div class="brand"><img src="icons/sun-96.png" alt=""><div><b>ServiceDATA</b><small>Mobil · ${esc(S.user)}</small></div></div><button class="ibtn" id="hSet" aria-label="Einstellungen">${IC.gear}</button></div>${cloudCfgOk() ? cloudChip() : fileChip()}</div>
+  $('#app').innerHTML = `<div class="top"><div class="top-row"><div class="brand"><div class="sun" id="hdrSun"><img class="rays" src="icons/sun-rays.png" alt=""><img class="face" src="icons/sun-face.png" alt=""><img class="face wink" src="icons/sun-face-wink.png" alt=""></div><div><b>ServiceDATA</b><small>Mobil · ${esc(S.user)}</small></div></div><button class="ibtn" id="hSet" aria-label="Einstellungen">${IC.gear}</button></div>${cloudCfgOk() ? cloudChip() : fileChip()}</div>
   <main>
     ${isIOS && !standalone() ? `<div class="card ios-tip">${IC.alert}<div class="hint"><b>Tipp:</b> Für den Offline-Betrieb die App auf den Home-Bildschirm legen: in Safari unten auf <span class="kbd-share">${IC.share}</span> <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>. Sonst kann iOS die Daten nach einiger Zeit löschen.</div></div>` : ''}
     <button class="btn pri big" id="hNew">${IC.plus} Neue Installation erfassen</button>
@@ -635,7 +723,7 @@ function machineCard(g, i) {
 async function addMachine(from) {
   const d = S.cur.daten; const prev = from || d.geraete[d.geraete.length - 1];
   const g = { id: uid(), gehaeuseId: prev?.gehaeuseId || '', gehaeuseName: prev?.gehaeuseName || '', seriennummer: '', software: prev?.software || '', dongle: '', notiz: '' };
-  d.geraete.push(g); markDirty(); await flushSave();
+  d.geraete.push(g); markDirty(); await flushSave(); sunFun('wink');
   go(`#/e/${S.cur.id}/m/${g.id}`);
 }
 
@@ -781,7 +869,8 @@ async function renderInstall(id, hl) {
 /* ---------------- Fotos ---------------- */
 async function addPhotos(files, g) {
   if (!files?.length) return; const e = S.cur;
-  toast(files.length > 1 ? `${files.length} Fotos werden gespeichert …` : 'Foto wird gespeichert …');
+  toast(files.length > 1 ? `${files.length} Fotos werden gespeichert …` : 'Foto wird gespeichert …'); busy(1);
+  try {
   for (const f of files) {
     const blob = await resizeImage(f);
     const id = uid(); const datei = `${today()}_${id}.jpg`;
@@ -789,6 +878,7 @@ async function addPhotos(files, g) {
     const gi = g ? e.daten.geraete.indexOf(g) : -1;
     e.fotos.push({ id, datei, titel: g ? `Maschine ${gi + 1}${g.seriennummer ? ' · SN ' + g.seriennummer : ''}` : '', am: new Date().toISOString(), von: S.user, ...(g ? { geraetId: g.id } : {}) });
   }
+  } finally { busy(-1); }
   markDirty(); await flushSave();
   if (!g) renderErf('fotos');
   toast(files.length > 1 ? `${files.length} Fotos gespeichert` : 'Foto gespeichert');
@@ -869,7 +959,7 @@ function scanner(title) {
           const sc = Math.min(1, 1280 / sw); cv.width = Math.round(sw * sc); cv.height = Math.round(sh * sc);
           cx.drawImage(v, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
           const txt = (await detect(cv)).trim();
-          if (txt && SC?.el === el) { paused = true; beep(); showRes(txt); }
+          if (txt && SC?.el === el) { paused = true; beep(); $('.frame', el)?.classList.add('hit'); navigator.vibrate?.(60); showRes(txt); }
         }
         setTimeout(loop, 120);
       };
@@ -877,7 +967,7 @@ function scanner(title) {
         msg('Erkannt – stimmt das?');
         $('#scRes', el).innerHTML = `<div class="res"><small>Gelesen</small><div class="v">${esc(txt)}</div></div><div class="btns two" style="margin-bottom:10px"><button class="btn" id="scAgain">Nochmal</button><button class="btn pri" id="scOk">${IC.check} Übernehmen</button></div>`;
         $('#scOk', el).onclick = () => closeScanner(txt);
-        $('#scAgain', el).onclick = () => { $('#scRes', el).innerHTML = ''; msg('Barcode oder QR-Code in den Rahmen halten'); setTimeout(() => { paused = false; }, 400); };
+        $('#scAgain', el).onclick = () => { $('#scRes', el).innerHTML = ''; $('.frame', el)?.classList.remove('hit'); msg('Barcode oder QR-Code in den Rahmen halten'); setTimeout(() => { paused = false; }, 400); };
       };
       loop();
     } catch (err) {
@@ -915,6 +1005,7 @@ async function buildExport(e) {
   const name = `SD-Mobil_${d.datum || today()}_${slug(d.ort) || 'installation'}_${e.id.slice(-5)}.zip`;
   return new File([await makeZip(files)], name, { type: 'application/zip' });
 }
+function celebrate(e) { const b = $('#xSend')?.getBoundingClientRect(); confetti(b ? b.left + b.width / 2 : innerWidth / 2, b ? b.top : innerHeight * .4, e?.daten?.status === 'stoerung' ? 40 : 140); }
 // Transport: Stufe 1 = Teilen-Menü / Download. Für Stufe 2 (Microsoft Graph) hier eine weitere Variante ergänzen.
 async function send(e, asFile = false) {
   await flushSave();
@@ -923,7 +1014,7 @@ async function send(e, asFile = false) {
     const btn = $('#xSend'); if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Wird gesendet …'; }
     try {
       if (!navigator.onLine) throw new TypeError('offline');
-      await cloudSend(e); toast('An ServiceDATA gesendet ✓');
+      await cloudSend(e); toast('An ServiceDATA gesendet ✓'); celebrate(e);
     } catch (err) {
       console.warn(err);
       e.wartet = true; await erfPut(e);
@@ -939,14 +1030,14 @@ async function send(e, asFile = false) {
   const stand = sig(e);
   const mark = async () => { e.gesendetAm = new Date().toISOString(); e.gesendetStand = stand; await erfPut(e); };
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: file.name }); await mark(); toast('Gesendet ✓'); return renderErf('abschluss'); }
+    try { await navigator.share({ files: [file], title: file.name }); await mark(); toast('Gesendet ✓'); await renderErf('abschluss'); celebrate(e); return; }
     catch (err) { if (err.name === 'AbortError') { renderErf('abschluss'); return toast('Senden abgebrochen'); } console.warn(err); }
   }
   // Fallback: Download
   const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
   const ok = await sheet(`<h3>Datei gespeichert?</h3><p class="hint" style="font-size:15px">Die Datei <b>${esc(file.name)}</b> wurde zum Herunterladen angeboten. Speichere sie in den OneDrive-Ordner <b>ServiceDATA › mobil › eingang</b>.</p><div class="btns"><button class="btn pri" data-close="ok">Ja, gespeichert</button><button class="btn" data-close="">Noch nicht</button></div>`);
   if (ok === 'ok') { await mark(); toast('Als gesendet markiert'); }
-  renderErf('abschluss');
+  await renderErf('abschluss'); if (ok === 'ok') celebrate(e);
 }
 
 
@@ -1290,7 +1381,10 @@ function wireCloudSettings() {
     if (C.acc && !S.user && (C.acc.name || C.acc.username)) { S.user = C.acc.name || C.acc.username; await kvSet('user', S.user); }
     if (C.err && C.err !== 'login' && fromLogin) toast(C.err, true, 6000);
   }
-  route();
+  const t0 = performance.now();
+  await route();
+  if (!$('#hdrSun')) { const sp = $('#splash'); if (sp) { sp.style.transition = 'opacity .35s'; sp.style.opacity = 0; setTimeout(() => sp.remove(), 350); } }
+  else { await new Promise(r => setTimeout(r, Math.max(0, 1150 - (performance.now() - t0)))); splashOut(); }
   cloudAuto();
 })();
 </script>
