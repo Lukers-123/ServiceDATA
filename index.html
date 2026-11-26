@@ -192,6 +192,12 @@ input[type=date].inp{display:block}
 .ios-tip svg{width:28px;height:28px;flex:none;color:var(--yellow)}
 .kbd-share{display:inline-block;vertical-align:-4px}
 .kbd-share svg{width:18px;height:18px;color:#5ac8fa}
+.cchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted);margin:2px 0 4px;max-width:100%}
+.cchip svg{width:16px;height:16px;flex:none}
+.cchip.warn{color:var(--yellow);border-color:rgba(255,204,0,.45);background:rgba(255,204,0,.1)}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:var(--yellow);animation:rot .8s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+.tag.wartet{background:rgba(120,170,255,.2);color:#9cc3ff}
 .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
 .sum{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:15px}
 .sum dt{color:var(--muted)}
@@ -210,7 +216,7 @@ input[type=date].inp{display:block}
 'use strict';
 /* =========================================================================
    ServiceDATA Mobil  –  Datenerfassung vor Ort (offline)
-   Version 1.1 (Installationen abrufen)
+   Version 2.0 (Stufe 2: Abgleich über Microsoft 365)
    - Daten bleiben im Gerät (IndexedDB), auch ohne Netz.
    - "An ServiceDATA senden" erzeugt eine ZIP-Datei (erfassung.json + fotos/),
      die über das Teilen-Menü in den gemeinsamen OneDrive-Ordner
@@ -220,7 +226,7 @@ input[type=date].inp{display:block}
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '1.1';
+const VERSION = '2.0';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -263,6 +269,8 @@ const IC = {
   phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.6 1.5A3.8 3.8 0 0 1 17.5 18z"/></svg>',
+  ms: '<svg viewBox="0 0 24 24"><path fill="#f25022" d="M3 3h8.5v8.5H3z"/><path fill="#7fba00" d="M12.5 3H21v8.5h-8.5z"/><path fill="#00a4ef" d="M3 12.5h8.5V21H3z"/><path fill="#ffb900" d="M12.5 12.5H21V21h-8.5z"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>'
 };
 
@@ -305,8 +313,8 @@ const pickDaten = b => { const x = {}; for (const k of DATEN_KEYS) if (b[k] !== 
 const basisSnap = b => pickDaten(b);
 const erfTitle = e => e.daten.ort ? `${e.daten.ort}${e.daten.bank ? ' · Bank ' + e.daten.bank : ''}` : 'Neue Installation';
 const sig = e => JSON.stringify([e.daten, e.fotos.map(f => [f.id, f.titel, f.geraetId])]);
-const erfState = e => !e.gesendetAm ? 'entwurf' : (sig(e) !== e.gesendetStand ? 'geaendert' : 'gesendet');
-const STATE_LBL = { entwurf: 'Entwurf', gesendet: 'Gesendet', geaendert: 'Geändert' };
+const erfState = e => e.wartet ? 'wartet' : !e.gesendetAm ? 'entwurf' : (sig(e) !== e.gesendetStand ? 'geaendert' : 'gesendet');
+const STATE_LBL = { entwurf: 'Entwurf', gesendet: 'Gesendet', geaendert: 'Geändert', wartet: 'Wartet auf Netz' };
 
 /* ---------------- Kleinkram ---------------- */
 let toastT = null;
@@ -406,13 +414,14 @@ function renderWelcome() {
     <div class="card"><div class="f"><label for="wName">Dein Name (wie in ServiceDATA)</label><input class="inp" id="wName" autocomplete="name" placeholder="Vorname Nachname" enterkeyhint="done"></div>
     ${names.length ? `<div class="chips">${names.map(n => `<button class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : ''}</div>
     <div class="btns"><button class="btn pri big" id="wGo">Los geht's</button>
-    <button class="btn" id="wStamm">${IC.dl} Daten aus ServiceDATA laden (optional)</button></div>
-    <p class="hint" style="margin-top:14px">Die Datei <b>ServiceDATA-Mobil-Daten.json</b> erstellst du am PC in ServiceDATA unter „iPhone-Erfassung“. Damit kennt die App eure Produkte, Locations, Ansprechpartner und geplanten Einsätze.</p>
+    ${cloudCfgOk() ? `<button class="btn big" id="wMs">${IC.ms} Mit Microsoft anmelden</button></div><p class="hint" style="margin-top:14px">Mit dem Firmenkonto anmelden: Name, Installationen und Produkte kommen dann automatisch.</p>` : `<button class="btn" id="wStamm">${IC.dl} Daten aus ServiceDATA laden (optional)</button></div>
+    <p class="hint" style="margin-top:14px">Die Datei <b>ServiceDATA-Mobil-Daten.json</b> erstellst du am PC in ServiceDATA unter „iPhone-Erfassung“. Damit kennt die App eure Produkte, Locations, Ansprechpartner und geplanten Einsätze.</p>`}
   </main>`;
   const go1 = async () => { const n = $('#wName').value.trim(); if (!n) { $('#wName').focus(); return toast('Bitte deinen Namen eintragen', true); } S.user = n; await kvSet('user', n); route(); };
   $('#wGo').onclick = go1; $('#wName').onkeydown = e => { if (e.key === 'Enter') go1(); };
   $$('[data-n]').forEach(b => b.onclick = () => { $('#wName').value = b.dataset.n; });
-  $('#wStamm').onclick = async () => { if (await importStamm()) renderWelcome(); };
+  $('#wStamm') && ($('#wStamm').onclick = async () => { if (await importStamm()) renderWelcome(); });
+  $('#wMs') && ($('#wMs').onclick = () => cloudLogin().catch(e => toast(e.message, true)));
 }
 
 /* ---------------- Startseite ---------------- */
@@ -427,7 +436,7 @@ async function renderHome() {
   const fertig = S.list.filter(e => erfState(e) === 'gesendet');
   const einsatzItem = x => `<button class="item" data-plan="${esc(x.id)}"><span class="ic">${IC.cal}</span><span class="tx"><div class="t1">${esc(x.ort || 'Ohne Location')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</div><div class="t2"><span class="tag geplant">${esc(fmtDate(x.datum))}</span>${(x.geraete || []).length} Maschinen${x.orderNr ? ' · Order ' + esc(x.orderNr) : ''}</div></span><span class="chev">${IC.chev}</span></button>`;
   const erfItem = e => { const st = erfState(e); const first = e.fotos[0]; return `<button class="item" data-erf="${e.id}"><span class="ic" ${first ? `data-ph="${first.id}"` : ''}>${IC.machine}</span><span class="tx"><div class="t1">${esc(erfTitle(e))}</div><div class="t2"><span class="tag ${st}">${STATE_LBL[st]}</span>${esc(fmtDate(e.daten.datum))} · ${e.daten.geraete.length} Masch. · ${e.fotos.length} Fotos</div></span><span class="chev">${IC.chev}</span></button>`; };
-  $('#app').innerHTML = `<div class="top"><div class="top-row"><div class="brand"><img src="icons/sun-96.png" alt=""><div><b>ServiceDATA</b><small>Mobil · ${esc(S.user)}</small></div></div><button class="ibtn" id="hSet" aria-label="Einstellungen">${IC.gear}</button></div></div>
+  $('#app').innerHTML = `<div class="top"><div class="top-row"><div class="brand"><img src="icons/sun-96.png" alt=""><div><b>ServiceDATA</b><small>Mobil · ${esc(S.user)}</small></div></div><button class="ibtn" id="hSet" aria-label="Einstellungen">${IC.gear}</button></div>${cloudChip()}</div>
   <main>
     ${isIOS && !standalone() ? `<div class="card ios-tip">${IC.alert}<div class="hint"><b>Tipp:</b> Für den Offline-Betrieb die App auf den Home-Bildschirm legen: in Safari unten auf <span class="kbd-share">${IC.share}</span> <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>. Sonst kann iOS die Daten nach einiger Zeit löschen.</div></div>` : ''}
     <button class="btn pri big" id="hNew">${IC.plus} Neue Installation erfassen</button>
@@ -437,12 +446,14 @@ async function renderHome() {
     ${others.length ? `<div class="sec-t">Weitere geplante Einsätze</div>${others.slice(0, 15).map(einsatzItem).join('')}` : ''}
     ${fertig.length ? `<div class="sec-t">Gesendet</div>${fertig.slice(0, 30).map(erfItem).join('')}` : ''}
     ${!S.list.length && !geplant.length ? `<div class="empty">Noch keine Erfassungen.<br>Tippe auf „Neue Installation erfassen“.</div>` : ''}
-    ${!S.stamm ? `<div class="card" style="margin-top:16px"><div class="hint" style="margin-bottom:10px">Noch keine Daten aus ServiceDATA geladen. Mit der Datei kennt die App eure Produkte, Locations und Einsätze.</div><button class="btn" id="hStamm">${IC.dl} Daten aus ServiceDATA laden</button></div>` : ''}
-    <div class="foot">ServiceDATA Mobil ${VERSION}${S.stamm ? ` · Daten vom ${esc(fmtDT(S.stamm.erstelltAm))}` : ''}</div>
+    ${!S.stamm && cloudCfgOk() && !cloudOn() ? `<div class="card" style="margin-top:16px"><div class="hint" style="margin-bottom:10px">Melde dich mit deinem Firmenkonto an. Dann lädt die App alle Installationen und Produkte automatisch und sendet deine Erfassungen direkt an ServiceDATA.</div><button class="btn pri" id="hLogin">${IC.ms} Mit Microsoft anmelden</button></div>` : ''}
+    ${!S.stamm && !cloudCfgOk() ? `<div class="card" style="margin-top:16px"><div class="hint" style="margin-bottom:10px">Noch keine Daten aus ServiceDATA geladen. Mit der Datei kennt die App eure Produkte, Locations und Einsätze.</div><button class="btn" id="hStamm">${IC.dl} Daten aus ServiceDATA laden</button></div>` : ''}
+    <div class="foot">ServiceDATA Mobil ${VERSION}${S.stamm && S.stamm.quelle !== 'cloud' ? ` · Daten vom ${esc(fmtDT(S.stamm.erstelltAm))}` : ''}</div>
   </main>`;
-  $('#hSet').onclick = () => go('#/einstellungen');
+  $('#hSet').onclick = () => go('#/einstellungen'); wireCloudChip();
   $('#hInst') && ($('#hInst').onclick = () => go('#/i'));
   $('#hNew').onclick = async () => { const e = newErf(blankDaten()); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`); };
+  $('#hLogin') && ($('#hLogin').onclick = () => cloudLogin().catch(e => toast(e.message, true)));
   $('#hStamm') && ($('#hStamm').onclick = async () => { if (await importStamm()) renderHome(); });
   $$('[data-erf]').forEach(b => b.onclick = () => go(`#/e/${b.dataset.erf}/ort`));
   $$('[data-plan]').forEach(b => b.onclick = () => startPlanned(b.dataset.plan));
@@ -560,9 +571,11 @@ async function renderErf(step) {
       <div class="f"><label>Einstellungen</label><textarea class="inp" data-k="einstellungen" placeholder="z. B. Denomination, Limits, Konfiguration"></textarea></div></div>
       <div class="card"><h2>Zusammenfassung</h2><dl class="sum"><dt>Location</dt><dd>${esc(d.ort || '–')}</dd><dt>Datum</dt><dd>${esc(fmtDate(d.datum))}</dd>${d.bank ? `<dt>Bank</dt><dd>${esc(d.bank)}</dd>` : ''}<dt>Maschinen</dt><dd>${d.geraete.length}</dd><dt>Fotos</dt><dd>${e.fotos.length}</dd><dt>Kontakte</dt><dd>${d.kontakte.filter(k => k.name).length}</dd></dl>
       <div style="margin-top:10px">${miss.length ? miss.map(m => `<div class="chk no">${IC.alert}${esc(m)}</div>`).join('') : `<div class="chk ok">${IC.check}Alles Wichtige ist erfasst</div>`}</div></div>
+      ${st === 'wartet' ? `<div class="warn" style="background:rgba(120,170,255,.12);border-color:rgba(120,170,255,.4);color:#cfe0ff">Wird automatisch gesendet, sobald das iPhone wieder Netz hat.</div>` : ''}
       ${st === 'gesendet' ? `<div class="okbox">Gesendet am ${esc(fmtDT(e.gesendetAm))}. Änderungen danach kannst du einfach noch einmal senden: ServiceDATA aktualisiert dann dieselbe Installation.</div>` : st === 'geaendert' ? `<div class="warn">Seit dem Senden am ${esc(fmtDT(e.gesendetAm))} geändert. Bitte noch einmal senden.</div>` : ''}
-      <button class="btn pri big" id="xSend">${IC.send} ${st === 'entwurf' ? 'An ServiceDATA senden' : 'Erneut senden'}</button>
-      <p class="hint" style="margin-top:10px">Es öffnet sich das Teilen-Menü. Wähle <b>„In Dateien sichern“</b> → <b>OneDrive</b> → Ordner <b>ServiceDATA › mobil › eingang</b>. Ohne Netz einfach später senden – die Daten bleiben im iPhone.</p>
+      <button class="btn pri big" id="xSend">${IC.send} ${st === 'entwurf' ? 'An ServiceDATA senden' : st === 'wartet' ? 'Jetzt senden' : 'Erneut senden'}</button>
+      ${cloudOn() ? `<p class="hint" style="margin-top:10px">Wird direkt in den gemeinsamen Ordner gesendet. Ohne Netz merkt sich die App die Erfassung und sendet sie automatisch nach.</p><button class="btn slim" id="xShare" style="width:100%;margin-top:6px">${IC.share} Stattdessen als Datei teilen</button>`
+      : `<p class="hint" style="margin-top:10px">Es öffnet sich das Teilen-Menü. Wähle <b>„In Dateien sichern“</b> → <b>OneDrive</b> → Ordner <b>ServiceDATA › mobil › eingang</b>. Ohne Netz einfach später senden – die Daten bleiben im iPhone.</p>`}
       <button class="btn danger slim" id="xDel" style="width:100%;margin-top:20px">${IC.trash} Erfassung löschen</button>`;
   }
   $('#app').innerHTML = head(e, step) + `<main>${body}</main>` + navBar(step);
@@ -596,6 +609,7 @@ async function renderErf(step) {
     bindInputs(main, d);
     $$('[data-st]').forEach(b => b.onclick = () => { d.status = b.dataset.st; markDirty(); $$('[data-st]').forEach(x => x.classList.toggle('on', x === b)); $('#stoerBox').style.display = d.status === 'stoerung' ? '' : 'none'; });
     $('#xSend').onclick = () => send(e);
+    $('#xShare') && ($('#xShare').onclick = () => send(e, true));
     $('#xDel').onclick = async () => {
       if (!await confirmSheet('Erfassung löschen?', `„${esc(erfTitle(e))}“ wird mit allen Fotos von diesem Gerät gelöscht.${e.gesendetAm ? ' Was schon an ServiceDATA gesendet wurde, bleibt dort erhalten.' : ' <b>Sie wurde noch nicht gesendet.</b>'}`, 'Löschen', true)) return;
       for (const f of e.fotos) await blobDel(f.id); await erfDel(e.id); S.cur = null; toast('Gelöscht'); go('#/');
@@ -705,7 +719,7 @@ function renderInstalls() {
   const draw = () => {
     const words = S.iq.toLowerCase().split(/\s+/).filter(Boolean);
     const hits = words.length ? all.filter(x => { const t = x._t ||= instText(x); return words.every(w => t.includes(w)); }) : all;
-    $('#iList').innerHTML = `<div class="hint" style="margin:0 4px 10px">${hits.length} von ${all.length} Installationen · Stand ${esc(fmtDT(S.stamm.erstelltAm))}</div>
+    $('#iList').innerHTML = `<div class="hint" style="margin:0 4px 10px">${hits.length} von ${all.length} Installationen · ${S.stamm.quelle === 'cloud' ? 'abgeglichen ' + esc(fmtAgo(C.lastPull || S.stamm.erstelltAm)) : 'Stand ' + esc(fmtDT(S.stamm.erstelltAm))}</div>
       ${hits.slice(0, 150).map(x => { const sn = words.length && (x.geraete || []).find(g => words.some(w => String(g.seriennummer || '').toLowerCase().includes(w)));
         return `<button class="item" data-iid="${esc(x.id)}"><span class="ic">${IC.pin}</span><span class="tx"><div class="t1">${esc(x.ort || 'Ohne Location')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</div><div class="t2">${ST_TAG(x)}${esc(fmtDate(x.datum))} · ${(x.geraete || []).length} Masch.${x.orderNr ? ' · Order ' + esc(x.orderNr) : ''}</div>${sn ? `<div class="t2" style="color:var(--yellow)">SN ${esc(sn.seriennummer)}</div>` : ''}</span><span class="chev">${IC.chev}</span></button>`; }).join('')}
       ${!hits.length ? `<div class="empty">Nichts gefunden.${words.length ? '' : ''}</div>` : ''}`;
@@ -744,12 +758,19 @@ async function renderInstall(id, hl) {
       <div class="btns two" style="margin-top:10px">${k.telefon ? `<a class="btn slim" href="tel:${esc(k.telefon.replace(/[^\d+]/g, ''))}">${IC.phone} Anrufen</a>` : ''}${k.email ? `<a class="btn slim" href="mailto:${esc(k.email)}">${IC.mail} E-Mail</a>` : ''}</div>${k.telefon ? `<div class="hint" style="margin-top:6px">${esc(k.telefon)}${k.email ? ' · ' + esc(k.email) : ''}</div>` : ''}</div>`).join('')}` : ''}
     ${x.notizen ? `<div class="card"><h2>Notizen</h2><div style="white-space:pre-wrap">${esc(x.notizen)}</div></div>` : ''}
     ${x.einstellungen ? `<div class="card"><h2>Einstellungen</h2><div style="white-space:pre-wrap">${esc(x.einstellungen)}</div></div>` : ''}
+    ${!(x.fotos || []).length && x.fotosAnzahl ? `<div class="card"><h2>Fotos (${x.fotosAnzahl})</h2><div id="cFotos" class="hint">${cloudOn() && navigator.onLine ? '<span class="spin" style="display:inline-block;vertical-align:-2px"></span> Fotos werden geladen …' : 'Fotos sind nur mit Netz sichtbar.'}</div></div>` : ''}
     ${(x.fotos || []).length ? `<div class="card"><h2>Fotos</h2><div class="pgrid">${x.fotos.map((f, i) => `<button class="ph" data-fi="${i}"><img src="${f.bild}" alt="" loading="lazy">${f.titel ? `<span>${esc(f.titel)}</span>` : ''}</button>`).join('')}</div>${x.fotosMehr ? `<p class="hint" style="margin-top:8px">+ ${x.fotosMehr} weitere Fotos am PC</p>` : ''}</div>` : ''}
   </main>
   <div class="bar"><button class="btn pri" id="dEdit">${IC.edit} ${open ? 'Erfassung fortsetzen' : 'Ergänzen / ändern'}</button></div>`;
   $('#dBack').onclick = () => history.length > 1 ? history.back() : go('#/i');
   $('[data-hl]')?.scrollIntoView({ block: 'center' });
   $$('[data-fi]').forEach(b => b.onclick = () => { const f = x.fotos[+b.dataset.fi]; const el = document.createElement('div'); el.className = 'lb'; el.innerHTML = `<div class="top-row" style="padding:calc(var(--st) + 6px) 8px 6px"><button class="ibtn" aria-label="Schließen">${IC.close}</button></div><img src="${f.bild}" alt="">${f.titel ? `<div class="lbb">${esc(f.titel)}</div>` : ''}`; el.onclick = () => el.remove(); document.body.append(el); });
+  if ($('#cFotos') && cloudOn() && navigator.onLine) cloudPhotos(x).then(list => {
+    const el = $('#cFotos'); if (!el) return;
+    if (!list.length) { el.textContent = 'Keine Vorschaubilder verfügbar.'; return; }
+    el.className = 'pgrid'; el.innerHTML = list.map((f, i) => `<button class="ph" data-cf="${i}"><img src="${esc(f.klein)}" alt="" loading="lazy">${f.titel ? `<span>${esc(f.titel)}</span>` : ''}</button>`).join('');
+    $$('[data-cf]', el).forEach(b => b.onclick = () => { const f = list[+b.dataset.cf]; const lb = document.createElement('div'); lb.className = 'lb'; lb.innerHTML = `<div class="top-row" style="padding:calc(var(--st) + 6px) 8px 6px"><button class="ibtn" aria-label="Schließen">${IC.close}</button></div><img src="${esc(f.gross)}" alt="">${f.titel ? `<div class="lbb">${esc(f.titel)}</div>` : ''}`; lb.onclick = () => lb.remove(); document.body.append(lb); });
+  }).catch(err => { const el = $('#cFotos'); if (el) el.textContent = 'Fotos konnten nicht geladen werden: ' + err.message; });
   $('#dEdit').onclick = async () => {
     if (!open && !await confirmSheet('Installation ergänzen?', 'Du erfasst Änderungen und Ergänzungen (z. B. neue Maschinen, Fotos, Seriennummern) auf dem iPhone. Beim Senden übernimmt ServiceDATA nur, was du hier änderst.', 'Ergänzen')) return;
     startFrom(x, true);
@@ -894,9 +915,23 @@ async function buildExport(e) {
   return new File([await makeZip(files)], name, { type: 'application/zip' });
 }
 // Transport: Stufe 1 = Teilen-Menü / Download. Für Stufe 2 (Microsoft Graph) hier eine weitere Variante ergänzen.
-async function send(e) {
+async function send(e, asFile = false) {
   await flushSave();
   if (!e.daten.ort.trim()) { toast('Bitte zuerst die Location eintragen', true); return go(`#/e/${e.id}/ort`); }
+  if (cloudOn() && !asFile) {
+    const btn = $('#xSend'); if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Wird gesendet …'; }
+    try {
+      if (!navigator.onLine) throw new TypeError('offline');
+      await cloudSend(e); toast('An ServiceDATA gesendet ✓');
+    } catch (err) {
+      console.warn(err);
+      e.wartet = true; await erfPut(e);
+      if (err instanceof NeedLogin) { toast('Bitte erst bei Microsoft anmelden – die Erfassung wird danach gesendet', true, 5000); setCloudBadge('login'); }
+      else if (err instanceof TypeError) toast('Kein Netz – wird automatisch gesendet, sobald Netz da ist', false, 4500);
+      else toast('Senden fehlgeschlagen: ' + err.message + ' – wird später erneut versucht', true, 6000);
+    }
+    return renderErf('abschluss');
+  }
   const btn = $('#xSend'); if (btn) { btn.disabled = true; btn.innerHTML = 'Datei wird erstellt …'; }
   let file;
   try { file = await buildExport(e); } catch (err) { toast('Datei konnte nicht erstellt werden: ' + err.message, true, 5000); return renderErf('abschluss'); }
@@ -913,6 +948,254 @@ async function send(e) {
   renderErf('abschluss');
 }
 
+
+/* =========================================================================
+   Stufe 2: Abgleich über Microsoft 365 (OneDrive / SharePoint via Microsoft Graph)
+   - Anmeldung mit dem Firmenkonto (MSAL, Redirect-Ablauf, funktioniert im Home-Bildschirm-Modus)
+   - Laden: installationen/<ordner>/installation.json, produkte/<id>.json (+ Bilder), Kategorien
+     aus dem gemeinsamen ServiceDATA-Ordner -> S.stamm (gleiches Format wie die PC-Datei)
+   - Senden: ZIP direkt nach mobil/eingang; ohne Netz in den Postausgang, später automatisch
+   Einstellungen kommen aus config.json (clientId, tenantId, ordnerLink) oder den App-Einstellungen.
+   ========================================================================= */
+const GRAPH = 'https://graph.microsoft.com/v1.0';
+const SCOPES = ['User.Read', 'Files.ReadWrite.All'];
+class NeedLogin extends Error { constructor() { super('Anmeldung bei Microsoft nötig'); this.name = 'NeedLogin'; } }
+const C = { cfg: { clientId: '', tenantId: '', ordnerLink: '' }, fromFile: false, msal: null, acc: null, root: null, pulling: null, lastPull: '', err: '' };
+const cloudCfgOk = () => !!(C.cfg.clientId && C.cfg.tenantId && C.cfg.ordnerLink);
+const cloudOn = () => cloudCfgOk() && (!!C.acc || !!window.__SD_TEST_TOKEN);
+async function cloudLoadCfg() {
+  let f = null; try { const r = await fetch('config.json', { cache: 'no-cache' }); if (r.ok) f = await r.json(); } catch { }
+  if (!f) f = (await kvGet('cfgFile').catch(() => null)) || null; else kvSet('cfgFile', f).catch(() => { });
+  const loc = (await kvGet('cfgLocal').catch(() => null)) || {};
+  C.fromFile = !!(f && f.clientId && f.tenantId && f.ordnerLink);
+  C.cfg = C.fromFile ? { clientId: f.clientId, tenantId: f.tenantId, ordnerLink: f.ordnerLink } : { clientId: loc.clientId || '', tenantId: loc.tenantId || '', ordnerLink: loc.ordnerLink || '' };
+  C.root = (await kvGet('cloudRoot').catch(() => null)) || null;
+  if (C.root && C.root.link !== C.cfg.ordnerLink) C.root = null;
+  C.lastPull = (await kvGet('cloudLastPull').catch(() => '')) || '';
+}
+function loadScript(src) { return new Promise((res, rej) => { if ($(`script[src="${src}"]`)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src + ' nicht geladen')); document.head.append(s); }); }
+async function msalInit() {
+  if (C.msal || !cloudCfgOk()) return C.msal;
+  await loadScript('msal-browser.min.js');
+  const redirectUri = location.origin + location.pathname;
+  C.msal = new msal.PublicClientApplication({ auth: { clientId: C.cfg.clientId, authority: 'https://login.microsoftonline.com/' + C.cfg.tenantId, redirectUri, navigateToLoginRequestUrl: false }, cache: { cacheLocation: 'localStorage' } });
+  await C.msal.initialize();
+  try { const r = await C.msal.handleRedirectPromise(); if (r?.account) C.msal.setActiveAccount(r.account); }
+  catch (e) { console.warn(e); C.err = 'Anmeldung fehlgeschlagen: ' + (e.errorMessage || e.message); }
+  C.acc = C.msal.getActiveAccount() || C.msal.getAllAccounts()[0] || null;
+  if (C.acc) C.msal.setActiveAccount(C.acc);
+  return C.msal;
+}
+async function cloudLogin() { await flushSave(); await msalInit(); await C.msal.loginRedirect({ scopes: SCOPES, prompt: 'select_account' }); }
+async function cloudLogout() { await msalInit(); const a = C.acc; C.acc = null; await kvSet('cloudRoot', null); C.root = null; if (a) await C.msal.logoutRedirect({ account: a, postLogoutRedirectUri: location.origin + location.pathname }); }
+async function token() {
+  if (window.__SD_TEST_TOKEN) return window.__SD_TEST_TOKEN;
+  await msalInit(); if (!C.acc) throw new NeedLogin();
+  try { return (await C.msal.acquireTokenSilent({ scopes: SCOPES, account: C.acc })).accessToken; }
+  catch (e) { console.warn(e); throw new NeedLogin(); }
+}
+async function gfetch(path, opt = {}) {
+  const t = await token();
+  const r = await fetch(path.startsWith('http') ? path : GRAPH + path, { ...opt, headers: { Authorization: 'Bearer ' + t, ...(opt.headers || {}) } });
+  if (r.status === 401) throw new NeedLogin();
+  if (r.status === 404) return null;
+  if (!r.ok) { let m = ''; try { m = (await r.json()).error?.message || ''; } catch { } throw new Error(`Microsoft ${r.status}${m ? ': ' + m : ''}`); }
+  return r;
+}
+const gjson = async (p, o) => { const r = await gfetch(p, o); return r ? r.json() : null; };
+const encPath = p => p.split('/').map(encodeURIComponent).join('/');
+const itemPath = p => `/drives/${C.root.driveId}/items/${C.root.itemId}${p ? ':/' + encPath(p) + ':' : ''}`;
+async function cloudRoot() {
+  if (C.root) return C.root;
+  const b64u = btoa(unescape(encodeURIComponent(C.cfg.ordnerLink.trim()))).replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-');
+  const it = await gjson(`/shares/u!${b64u}/driveItem`);
+  if (!it?.id) throw new Error('Gemeinsamer Ordner nicht gefunden. Stimmt der Freigabe-Link, und ist der Ordner mit dir geteilt?');
+  let root = { driveId: it.parentReference?.driveId || it.remoteItem?.parentReference?.driveId, itemId: it.id, name: it.name, link: C.cfg.ordnerLink };
+  C.root = root;
+  // Datenbank direkt im Ordner oder im Unterordner "ServiceDATA"
+  if (!await gfetch(itemPath('installdb.json'))) {
+    const sub = await gjson(itemPath('ServiceDATA'));
+    if (sub?.id && await gfetch(`/drives/${root.driveId}/items/${sub.id}:/installdb.json:`)) root = { ...root, itemId: sub.id, name: sub.name };
+    else { C.root = null; throw new Error('Im freigegebenen Ordner wurde keine ServiceDATA-Datenbank gefunden.'); }
+  }
+  C.root = root; await kvSet('cloudRoot', root); return root;
+}
+async function listAll(url) { const out = []; while (url) { const j = await gjson(url); if (!j) break; out.push(...(j.value || [])); url = j['@odata.nextLink'] || ''; } return out; }
+async function pool(items, n, fn) { const q = items.slice(); await Promise.all(Array.from({ length: Math.min(n, q.length) }, async () => { while (q.length) await fn(q.shift()); })); }
+async function dlJSON(it) { const u = it['@microsoft.graph.downloadUrl']; const r = u ? await fetch(u) : await gfetch(`/drives/${C.root.driveId}/items/${it.id}/content`); if (!r || !r.ok) return null; try { return await r.json(); } catch { return null; } }
+async function dlBlob(it) { const u = it['@microsoft.graph.downloadUrl']; const r = u ? await fetch(u) : await gfetch(`/drives/${C.root.driveId}/items/${it.id}/content`); return r && r.ok ? r.blob() : null; }
+async function blobToThumb(b, max = 260) {
+  try {
+    let src = b; if (b.type === 'image/svg+xml' || /<svg/i.test((await b.slice(0, 200).text()))) { const u = URL.createObjectURL(new Blob([await b.text()], { type: 'image/svg+xml' })); const im = new Image(); im.src = u; await im.decode(); src = im; }
+    const bmp = src instanceof Blob ? await createImageBitmap(src) : src; const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', .8);
+  } catch (e) { console.warn(e); return ''; }
+}
+
+/* ---- Daten laden ---- */
+function cloudPull(force = false) {
+  if (!cloudOn() || !navigator.onLine) return Promise.resolve(false);
+  return C.pulling ||= (async () => {
+    setCloudBadge('sync');
+    try {
+      await cloudRoot();
+      const cache = (await kvGet('cloudCache')) || { inst: {}, prod: {}, img: {}, cats: null, plat: null };
+      // Installationen: je Ordner die installation.json, nur geänderte neu laden
+      const dirs = (await listAll(itemPath('installationen') + '/children?$expand=children&$top=200')).filter(x => x.folder);
+      const seen = new Set();
+      await pool(dirs, 6, async d => {
+        seen.add(d.name);
+        const f = (d.children || []).find(c => c.name === 'installation.json'); if (!f) return;
+        const fo = (d.children || []).find(c => c.name === 'fotos' && c.folder);
+        const old = cache.inst[d.name];
+        if (old && old.mod === f.lastModifiedDateTime && !force) { old.fotosId = fo?.id || ''; return; }
+        const j = await dlJSON(f); if (j) cache.inst[d.name] = { mod: f.lastModifiedDateTime, fotosId: fo?.id || '', d: j };
+      });
+      for (const k of Object.keys(cache.inst)) if (!seen.has(k)) delete cache.inst[k];
+      // Produkte, Kategorien, Plattformen
+      const pf = (await listAll(itemPath('produkte') + '/children?$top=500')).filter(x => x.file);
+      const byName = new Map(pf.map(x => [x.name, x]));
+      const kat = byName.get('.kategorien.json'); if (kat) cache.cats = await dlJSON(kat);
+      const pl = byName.get('.plattformen.json'); if (pl) cache.plat = await dlJSON(pl);
+      const pj = pf.filter(x => x.name.endsWith('.json') && !x.name.startsWith('.')); const pseen = new Set();
+      await pool(pj, 6, async it => { pseen.add(it.name); const o = cache.prod[it.name]; if (o && o.mod === it.lastModifiedDateTime && !force) return; const j = await dlJSON(it); if (j?.id) cache.prod[it.name] = { mod: it.lastModifiedDateTime, d: j }; });
+      for (const k of Object.keys(cache.prod)) if (!pseen.has(k)) delete cache.prod[k];
+      // Bilder (nur Gehäuse) verkleinert merken
+      const cats = catMap(cache.cats);
+      await pool(Object.values(cache.prod).map(x => x.d).filter(p => !p.geloescht && p.bild && artOfP(p, cats) === 'gehaeuse'), 4, async p => {
+        const it = byName.get(p.bild); if (!it) return; const key = p.bild + '|' + it.lastModifiedDateTime;
+        if (cache.img[p.id]?.key === key) return;
+        const b = await dlBlob(it); if (b) cache.img[p.id] = { key, url: await blobToThumb(b) };
+      });
+      await kvSet('cloudCache', cache);
+      S.stamm = buildStamm(cache); await kvSet('stamm', S.stamm);
+      C.lastPull = new Date().toISOString(); await kvSet('cloudLastPull', C.lastPull); C.err = '';
+      setCloudBadge('ok');
+      return true;
+    } catch (e) {
+      console.warn(e); C.err = e instanceof NeedLogin ? 'login' : e.message; setCloudBadge(e instanceof NeedLogin ? 'login' : 'err'); return false;
+    } finally { C.pulling = null; }
+  })();
+}
+function catMap(j) {
+  const m = { gehaeuse: { id: 'gehaeuse', label: 'Gehäuse', art: 'gehaeuse' }, led: { id: 'led', label: 'LED-Signs', art: 'led' }, zubehoer: { id: 'zubehoer', label: 'Zubehör', art: 'zubehoer' } };
+  for (const k of j?.kategorien || []) { if (k.geloescht) { delete m[k.id]; continue; } m[k.id] = { ...(m[k.id] || {}), ...k, art: k.art ?? m[k.id]?.art ?? '' }; }
+  return m;
+}
+const artOfP = (p, cats) => cats[p.kategorie]?.art || (cats[p.kategorie] ? '' : 'gehaeuse');
+const catLabelP = (k, cats) => { const out = []; let x = k; while (x && cats[x] && !out.includes(cats[x].label)) { out.unshift(cats[x].plural || cats[x].label); x = cats[x].parent; } return out.join(' › '); };
+function buildStamm(cache) {
+  const cats = catMap(cache.cats);
+  const allP = Object.values(cache.prod).map(x => x.d);
+  const pName = id => allP.find(p => p.id === id)?.name || '';
+  const prods = allP.filter(p => !p.geloescht && artOfP(p, cats) === 'gehaeuse').sort((a, b) => (a.pos ?? 1e6) - (b.pos ?? 1e6) || (a.name || '').localeCompare(b.name || '', 'de'));
+  const produkte = prods.map(p => ({ id: p.id, name: p.name || '', herstellerBez: p.herstellerBez || '', kategorie: catLabelP(p.kategorie || 'gehaeuse', cats), plattform: p.plattform === 'magie' ? 'magie' : 'mii', bild: cache.img[p.id]?.url || '' }));
+  const techsOf = i => (Array.isArray(i.techniker) ? i.techniker : (i.techniker ? [i.techniker] : [])).map(t => String(t).trim()).filter(Boolean);
+  const insts = Object.entries(cache.inst).map(([dir, x]) => ({ ...x.d, _dir: dir, _fotosId: x.fotosId })).filter(i => !i.geloescht).sort((a, b) => (b.datum || '').localeCompare(a.datum || ''));
+  const st = i => ['geplant', 'installiert', 'stoerung'].includes(i.status) ? i.status : 'installiert';
+  const end = i => i.mehrtaegig && i.datumBis > i.datum ? i.datumBis : i.datum;
+  const locs = new Map();
+  for (const i of insts) {
+    const k = (i.ort || '').trim().toLowerCase(); if (!k) continue;
+    const e = locs.get(k) || { ort: i.ort.trim(), land: '', bundesland: '', floors: [], kontakte: [] };
+    e.land ||= i.land || ''; e.bundesland ||= i.bundesland || ''; if (i.floor && !e.floors.includes(i.floor)) e.floors.push(i.floor);
+    for (const kk of i.kontakte || []) if (kk.name && !e.kontakte.some(x => x.name.toLowerCase() === kk.name.trim().toLowerCase())) e.kontakte.push({ name: kk.name.trim(), rolle: kk.rolle || '', telefon: kk.telefon || '', email: kk.email || '' });
+    locs.set(k, e);
+  }
+  const sw = new Map(); for (const i of insts) for (const g of i.geraete || []) { const v = (g.software || '').trim(); if (v) sw.set(v, (sw.get(v) || 0) + 1); }
+  const tset = new Map(); for (const i of insts) for (const t of techsOf(i)) tset.set(t.toLowerCase(), t);
+  const conv = i => ({
+    id: i._dir, rev: i.rev || 0, datum: i.datum || '', mehrtaegig: !!i.mehrtaegig, datumBis: i.datumBis || '', ort: i.ort || '', floor: i.floor || '', bank: i.bank || '', land: i.land || '', bundesland: i.bundesland || '', jurisdiction: i.jurisdiction || '', orderNr: i.orderNr || '',
+    techniker: techsOf(i), status: st(i), inBearbeitung: !!i.inBearbeitung, stoerungText: i.stoerungText || '', notizen: i.notizen || '', einstellungen: i.einstellungen || '', geaendertAm: i.geaendertAm || '', geaendertVon: i.geaendertVon || '',
+    progressive: !!i.progressive, progLevels: (i.progLevels || []).map(l => ({ level: l.level || '', start: l.start || '', aktuell: l.aktuell || '' })), progNotiz: i.progNotiz || '',
+    kontakte: (i.kontakte || []).filter(k => k.name || k.telefon || k.email).map(k => ({ name: k.name || '', rolle: k.rolle || '', telefon: k.telefon || '', email: k.email || '' })),
+    geraete: (i.geraete || []).map(g => ({ id: g.id, gehaeuseId: g.gehaeuseId || '', gehaeuseName: g.gehaeuseId && !prods.some(p => p.id === g.gehaeuseId) ? pName(g.gehaeuseId) : '', seriennummer: g.seriennummer || '', software: g.software || '', dongle: g.dongle || '', notiz: g.notiz || '' })),
+    zubehoer: (i.zubehoer || []).map(z => ({ name: pName(z.produktId), anzahl: Math.max(1, Math.floor(+z.anzahl || 1)), seriennummer: z.seriennummer || '' })),
+    fotos: [], fotosAnzahl: (i.fotos || []).length, fotosId: i._fotosId || '', fotosTitel: Object.fromEntries((i.fotos || []).map(f => [f.datei, f.titel || '']))
+  });
+  const from = (() => { const d = new Date(); d.setDate(d.getDate() - 14); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; })();
+  const installationen = insts.map(conv);
+  return {
+    format: STAMM_FORMAT, version: 2, quelle: 'cloud', erstelltAm: new Date().toISOString(), von: 'Microsoft 365', produkte, locations: [...locs.values()],
+    software: [...sw.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]).slice(0, 40), techniker: [...tset.values()].sort((a, b) => a.localeCompare(b, 'de')),
+    einsaetze: installationen.filter(i => (i.status === 'geplant' || i.inBearbeitung) && (end(i) || '9999') >= from), installationen
+  };
+}
+// Fotos einer Installation online nachladen (Vorschaubilder von Microsoft)
+async function cloudPhotos(x) {
+  if (!cloudOn() || !navigator.onLine || !x.fotosId) return [];
+  const list = await listAll(`/drives/${C.root.driveId}/items/${x.fotosId}/children?$expand=thumbnails&$top=200`);
+  return list.filter(f => f.file && f.thumbnails?.[0]).map(f => ({ titel: x.fotosTitel?.[f.name] || '', klein: f.thumbnails[0].medium?.url || f.thumbnails[0].small?.url, gross: f.thumbnails[0].large?.url || f.thumbnails[0].medium?.url }));
+}
+
+/* ---- Senden ---- */
+async function cloudUpload(file) {
+  await cloudRoot();
+  const p = itemPath('mobil/eingang/' + file.name);
+  if (file.size <= 3.5 * 1048576) { await gfetch(p + '/content', { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: file }); return; }
+  const s = await gjson(p + '/createUploadSession', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
+  if (!s?.uploadUrl) throw new Error('Upload konnte nicht gestartet werden');
+  const CH = 320 * 1024 * 10;
+  for (let o = 0; o < file.size; o += CH) {
+    const end = Math.min(file.size, o + CH);
+    const r = await fetch(s.uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${o}-${end - 1}/${file.size}` }, body: file.slice(o, end) });
+    if (!r.ok && r.status !== 202) throw new Error('Upload abgebrochen (' + r.status + ')');
+  }
+}
+async function cloudSend(e) {
+  const stand = sig(e); const file = await buildExport(e);
+  await cloudUpload(file);
+  e.gesendetAm = new Date().toISOString(); e.gesendetStand = stand; e.wartet = false; e.gesendetPer = 'cloud';
+  await erfPut(e); if (S.cur?.id === e.id) Object.assign(S.cur, { gesendetAm: e.gesendetAm, gesendetStand: stand, wartet: false, gesendetPer: 'cloud' });
+}
+let outboxRun = null;
+function processOutbox() {
+  if (!cloudOn() || !navigator.onLine) return Promise.resolve(0);
+  return outboxRun ||= (async () => {
+    let n = 0;
+    try {
+      for (const e of (await erfAll()).filter(x => x.wartet)) {
+        if (S.cur?.id === e.id) await flushSave();
+        const cur = S.cur?.id === e.id ? S.cur : e;
+        try { await cloudSend(cur); n++; } catch (err) { console.warn(err); if (err instanceof NeedLogin) { setCloudBadge('login'); break; } }
+      }
+      if (n) { toast(n > 1 ? `${n} wartende Erfassungen gesendet ✓` : 'Wartende Erfassung gesendet ✓'); if (!S.cur && (location.hash || '#/') === '#/') renderHome(); }
+    } finally { outboxRun = null; }
+    return n;
+  })();
+}
+function setCloudBadge(st) { C.state = st; const el = $('#cloudChip'); if (el) el.outerHTML = cloudChip(); wireCloudChip(); }
+function cloudChip() {
+  if (!cloudCfgOk()) return '';
+  const ago = C.lastPull ? fmtAgo(C.lastPull) : '';
+  let t, cls = '';
+  if (!C.acc && !window.__SD_TEST_TOKEN || C.state === 'login') { t = 'Bei Microsoft anmelden'; cls = 'warn'; }
+  else if (!navigator.onLine) t = `Offline${ago ? ' · Stand ' + ago : ''}`;
+  else if (C.state === 'sync') t = 'Wird abgeglichen …';
+  else if (C.state === 'err') { t = 'Abgleich fehlgeschlagen – antippen'; cls = 'warn'; }
+  else t = `Aktuell${ago ? ' · ' + ago : ''}`;
+  return `<button class="cchip ${cls}" id="cloudChip">${C.state === 'sync' ? '<span class="spin"></span>' : IC.cloud}<span>${esc(t)}</span></button>`;
+}
+function wireCloudChip() {
+  const el = $('#cloudChip'); if (!el) return;
+  el.onclick = async () => {
+    if (!C.acc && !window.__SD_TEST_TOKEN || C.state === 'login') return cloudLogin().catch(e => toast(e.message, true));
+    if (C.state === 'err' && C.err) toast(C.err, true, 5000);
+    if (await cloudPull(true)) { toast('Daten aktualisiert ✓'); if (!S.cur) route(); }
+  };
+}
+function fmtAgo(iso) { const m = Math.round((Date.now() - new Date(iso)) / 60000); if (m < 1) return 'gerade eben'; if (m < 60) return `vor ${m} Min.`; const h = Math.round(m / 60); if (h < 24) return `vor ${h} Std.`; return fmtDT(iso); }
+async function cloudAuto() {
+  if (!cloudOn() || !navigator.onLine) return;
+  await processOutbox();
+  if (!C.lastPull || Date.now() - new Date(C.lastPull) > 5 * 60000) { if (await cloudPull() && !S.cur) { const h = location.hash || '#/'; if (h === '#/' || h.startsWith('#/i')) route(); } }
+}
+addEventListener('online', () => { setCloudBadge(C.state === 'sync' ? 'sync' : 'ok'); cloudAuto(); });
+addEventListener('offline', () => setCloudBadge(C.state));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) cloudAuto(); });
+
 /* ---------------- Einstellungen ---------------- */
 async function renderSettings() {
   let est = null; try { est = await navigator.storage?.estimate?.(); } catch { }
@@ -920,7 +1203,8 @@ async function renderSettings() {
   const list = await erfAll();
   $('#app').innerHTML = `<div class="top"><div class="top-row"><button class="ibtn" id="sBack" aria-label="Zurück">${IC.back}</button><h1>Einstellungen</h1></div></div><main>
     <div class="card"><div class="f"><label for="sName">Dein Name</label><input class="inp" id="sName" value="${esc(S.user)}" autocomplete="name"></div></div>
-    <div class="card"><h2>Daten aus ServiceDATA</h2>
+    ${cloudSettingsHTML()}
+    <div class="card" ${cloudOn() ? 'style="display:none"' : ''}><h2>Daten aus ServiceDATA</h2>
       ${S.stamm ? `<dl class="sum" style="margin-bottom:12px"><dt>Stand</dt><dd>${esc(fmtDT(S.stamm.erstelltAm))}${S.stamm.von ? ' · ' + esc(S.stamm.von) : ''}</dd><dt>Produkte</dt><dd>${S.stamm.produkte?.length || 0}</dd><dt>Locations</dt><dd>${S.stamm.locations?.length || 0}</dd><dt>Einsätze</dt><dd>${S.stamm.einsaetze?.length || 0}</dd><dt>Installationen</dt><dd>${S.stamm.installationen?.length || 0}</dd></dl>` : `<p class="hint">Noch nicht geladen.</p>`}
       <button class="btn" id="sStamm">${IC.dl} ${S.stamm ? 'Neu laden' : 'Laden'}</button>
       <p class="hint" style="margin-top:10px">Am PC in ServiceDATA: <b>iPhone-Erfassung › Daten fürs iPhone erstellen</b>. Hier dann die Datei <b>ServiceDATA-Mobil-Daten.json</b> aus OneDrive (Ordner ServiceDATA › mobil) auswählen.</p></div>
@@ -931,12 +1215,33 @@ async function renderSettings() {
   $('#sBack').onclick = () => go('#/');
   $('#sName').onchange = async ev => { const v = ev.target.value.trim(); if (!v) return; S.user = v; await kvSet('user', v); toast('Name gespeichert'); };
   $('#sStamm').onclick = async () => { if (await importStamm()) renderSettings(); };
+  wireCloudSettings();
   $('#sClean') && ($('#sClean').onclick = async () => {
     const del = list.filter(e => erfState(e) === 'gesendet');
     if (!await confirmSheet('Aufräumen?', `${del.length} gesendete Erfassung(en) mit ${del.reduce((s, e) => s + e.fotos.length, 0)} Fotos werden von diesem Gerät gelöscht. In ServiceDATA bleibt alles erhalten.`, 'Aufräumen', true)) return;
     for (const e of del) { for (const f of e.fotos) await blobDel(f.id); await erfDel(e.id); }
     toast('Aufgeräumt'); renderSettings();
   });
+}
+
+function cloudSettingsHTML() {
+  const ok = cloudCfgOk();
+  return `<div class="card"><h2>Microsoft 365</h2>
+    ${ok ? `<dl class="sum" style="margin-bottom:12px"><dt>Konto</dt><dd>${esc(C.acc ? (C.acc.name || C.acc.username) : (window.__SD_TEST_TOKEN ? 'Test' : 'nicht angemeldet'))}</dd>${C.acc?.username ? `<dt>E-Mail</dt><dd>${esc(C.acc.username)}</dd>` : ''}<dt>Ordner</dt><dd>${esc(C.root?.name || '–')}</dd><dt>Abgleich</dt><dd>${C.lastPull ? esc(fmtAgo(C.lastPull)) : '–'}</dd></dl>
+      ${C.err && C.err !== 'login' ? `<div class="warn">${esc(C.err)}</div>` : ''}
+      ${cloudOn() ? `<div class="btns two"><button class="btn" id="cPull">${IC.cloud} Jetzt abgleichen</button><button class="btn" id="cOut">Abmelden</button></div>` : `<button class="btn pri" id="cIn">${IC.ms} Mit Microsoft anmelden</button>`}`
+      : `<p class="hint" style="margin-top:0">Noch nicht eingerichtet. Ohne Microsoft-Anmeldung funktioniert die App mit Dateien (Teilen-Menü).</p>`}
+    ${!C.fromFile ? `<details style="margin-top:12px"><summary class="hint">Verbindung einrichten (für Administratoren)</summary>
+      <div class="f" style="margin-top:10px"><label>Anwendungs-ID (Client-ID)</label><input class="inp" id="cfgC" value="${esc(C.cfg.clientId)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="f"><label>Verzeichnis-ID (Tenant-ID)</label><input class="inp" id="cfgT" value="${esc(C.cfg.tenantId)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="f"><label>Freigabe-Link zum ServiceDATA-Ordner</label><input class="inp" id="cfgL" value="${esc(C.cfg.ordnerLink)}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://firma.sharepoint.com/..."></div>
+      <button class="btn" id="cfgSave">Speichern</button></details>` : ''}</div>`;
+}
+function wireCloudSettings() {
+  $('#cIn') && ($('#cIn').onclick = () => cloudLogin().catch(e => toast(e.message, true)));
+  $('#cOut') && ($('#cOut').onclick = async () => { if (await confirmSheet('Abmelden?', 'Deine Erfassungen bleiben im iPhone. Senden und Abgleich gehen erst nach erneuter Anmeldung wieder.', 'Abmelden')) cloudLogout().catch(e => toast(e.message, true)); });
+  $('#cPull') && ($('#cPull').onclick = async () => { const b = $('#cPull'); b.disabled = true; b.innerHTML = '<span class="spin"></span> Gleiche ab …'; const ok = await cloudPull(true); await processOutbox(); toast(ok ? 'Abgleich fertig ✓' : 'Abgleich fehlgeschlagen' + (C.err && C.err !== 'login' ? ': ' + C.err : ''), !ok, 5000); renderSettings(); });
+  $('#cfgSave') && ($('#cfgSave').onclick = async () => { await kvSet('cfgLocal', { clientId: $('#cfgC').value.trim(), tenantId: $('#cfgT').value.trim(), ordnerLink: $('#cfgL').value.trim() }); await kvSet('cloudRoot', null); C.msal = null; await cloudLoadCfg(); toast('Gespeichert'); renderSettings(); });
 }
 
 /* ---------------- Start ---------------- */
@@ -949,7 +1254,16 @@ async function renderSettings() {
   }
   try { S.user = (await kvGet('user')) || ''; S.stamm = (await kvGet('stamm')) || null; }
   catch (e) { $('#app').innerHTML = `<main><div class="warn">Der Gerätespeicher ist nicht verfügbar (${esc(e.message)}). Im privaten Surfmodus funktioniert die App nicht.</div></main>`; return; }
+  await cloudLoadCfg();
+  if (cloudCfgOk()) {
+    const fromLogin = /[#&?](code|error)=/.test(location.hash + location.search);
+    try { await msalInit(); } catch (e) { console.warn(e); C.err = e.message; }
+    if (fromLogin) history.replaceState(null, '', location.pathname + '#/');
+    if (C.acc && !S.user && (C.acc.name || C.acc.username)) { S.user = C.acc.name || C.acc.username; await kvSet('user', S.user); }
+    if (C.err && C.err !== 'login' && fromLogin) toast(C.err, true, 6000);
+  }
   route();
+  cloudAuto();
 })();
 </script>
 </body>
