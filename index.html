@@ -245,6 +245,56 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
 .chk.ok svg{color:var(--green)} .chk.no svg{color:var(--orange)}
 @media (min-width:600px){.ggrid{grid-template-columns:repeat(3,1fr)}.pgrid{grid-template-columns:repeat(4,1fr)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.beams{display:none}}
+/* LiveView */
+.lv{position:fixed;inset:0;z-index:45;background:#000;overflow:hidden;animation:fade .2s}
+.lv.lv-out{animation:fadeOut .22s forwards}
+@keyframes fadeOut{to{opacity:0}}
+.lv video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lv-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.lv-flash.on{animation:lvFlash .35s ease-out}
+@keyframes lvFlash{0%{opacity:.85}100%{opacity:0}}
+.lv-top{position:absolute;left:0;right:0;top:0;padding:calc(var(--st) + 8px) 10px 4px;display:flex;align-items:center;gap:6px;background:linear-gradient(rgba(0,0,0,.75),transparent)}
+.lv-top b{flex:1;font-size:17px}
+.lv-top .ibtn.on{background:var(--yellow);color:var(--ink)}
+.lv-mbar{position:absolute;left:10px;right:10px;top:calc(var(--st) + 60px);display:flex;align-items:center;gap:4px;background:rgba(0,23,52,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;padding:4px}
+.lv-mbar .ibtn{width:40px;height:40px}
+.lv-mbar .ibtn:disabled{opacity:.3}
+.lv-mt{flex:1;min-width:0;text-align:center;line-height:1.2}
+.lv-mt small{display:block;color:var(--yellow);font-size:12px;font-weight:700;letter-spacing:.3px}
+.lv-mt b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-new{border:0;background:var(--yellow);color:var(--ink);font-weight:750;border-radius:11px;height:40px;padding:0 12px;display:flex;align-items:center;gap:4px;font-size:14px}
+.lv-new svg{width:16px;height:16px}
+.lv-frame{position:absolute;left:5%;right:5%;top:calc(var(--st) + 118px);height:min(30vh,270px);border-radius:16px;border:3px solid var(--yellow);box-shadow:0 0 0 9999px rgba(0,0,0,.42);transition:border-color .25s,box-shadow .25s}
+.lv-frame.hit{border-color:var(--green);box-shadow:0 0 0 9999px rgba(0,0,0,.42),0 0 26px rgba(47,191,113,.7)}
+.lv-frame::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);opacity:0}
+.lv-frame.busy::before{animation:lvScan 1.1s ease-in-out infinite;opacity:1}
+@keyframes lvScan{0%{top:4%}50%{top:94%}100%{top:4%}}
+.lv-st{position:absolute;left:50%;bottom:-38px;transform:translateX(-50%);white-space:nowrap;font-size:13px;font-weight:650;background:rgba(0,0,0,.6);padding:5px 12px;border-radius:20px;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.lv-bot{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(12px + var(--sb));background:linear-gradient(transparent,rgba(0,12,28,.9) 18%)}
+.lv-fields{background:rgba(0,23,52,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:4px 12px;margin-bottom:12px}
+.lv-row{display:flex;align-items:center;gap:8px;min-height:42px;border-bottom:1px solid var(--line)}
+.lv-row:last-child{border-bottom:0}
+.lv-k{width:96px;flex:none;font-size:12.5px;color:var(--muted);font-weight:650}
+.lv-v{flex:1;min-width:0;font-weight:700;font-family:ui-monospace,Menlo,monospace;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.lv-v i{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-weight:500;color:rgba(255,255,255,.45);font-size:14px}
+.lv-row.ok .lv-v{color:#fff}
+.lv-ok{color:var(--green);width:22px;height:22px;flex:none}
+.lv-c{flex:none;max-width:48%;border:0;border-radius:10px;background:var(--yellow);color:var(--ink);font-weight:750;font-size:13.5px;padding:6px 8px 6px 10px;display:flex;align-items:center;gap:5px;font-family:ui-monospace,Menlo,monospace;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lv-c em{width:16px;height:16px;flex:none;display:block}
+.lv-pop{animation:lvPop .45s ease-out}
+@keyframes lvPop{0%{background:rgba(47,191,113,.55)}100%{background:transparent}}
+.lv-ask{background:#fff;color:var(--ink);border-radius:16px;padding:12px;margin-bottom:10px;font-size:15px;animation:up .25s}
+.lv-ask .btns{margin-top:10px}
+.lv-ask .btn:not(.pri){background:#e8edf5;color:var(--ink)}
+.lv-ctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.lv-thumb{justify-self:start;width:56px;height:56px;border-radius:12px;border:2px solid rgba(255,255,255,.8);background:rgba(255,255,255,.1) center/cover;position:relative;padding:0}
+.lv-thumb span{position:absolute;right:-8px;top:-8px;min-width:22px;height:22px;border-radius:11px;background:var(--yellow);color:var(--ink);font-size:12px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+.lv-thumb span:empty{display:none}
+.lv-shut{width:76px;height:76px;border-radius:50%;border:4px solid #fff;background:transparent;padding:5px}
+.lv-shut i{display:block;width:100%;height:100%;border-radius:50%;background:#fff;transition:transform .12s}
+.lv-shut:active i{transform:scale(.86)}
+.lv-done{justify-self:end;min-width:96px}
+.lv-lines .item{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -265,7 +315,7 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.3';
+const VERSION = '2.4';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -303,6 +353,8 @@ const IC = {
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
   dl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>',
   light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
+  text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>',
+  live: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M7 9h6M7 12h10M7 15h8"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
@@ -479,7 +531,7 @@ async function importStamm() {
 /* ---------------- Router ---------------- */
 async function route() {
   const [v, id, sub, sub2] = location.hash.slice(2).split('/');
-  closeScanner();
+  closeScanner(); if (LV) { LV.done = null; closeLive(); }
   if (!S.user) return renderWelcome();
   if (v === 'e' && id) {
     if (!S.cur || S.cur.id !== id) { S.cur = await erfGet(id); if (!S.cur) { location.hash = '#/'; return; } }
@@ -631,8 +683,9 @@ async function renderErf(step) {
       <div class="withbtn" style="margin-top:10px"><input class="inp" id="techNew" placeholder="Weiterer Name" enterkeyhint="done"><button class="scanbtn" id="techAdd" aria-label="Hinzufügen">${IC.plus}</button></div></div>`;
   } else if (step === 'maschinen') {
     body = d.geraete.length ? d.geraete.map((g, i) => machineCard(g, i)).join('') : `<div class="empty">Noch keine Maschinen erfasst.</div>`;
-    body += `<button class="btn pri big" id="mAdd" style="margin-top:6px">${IC.plus} Maschine hinzufügen</button>
-      ${d.geraete.length ? `<p class="hint" style="text-align:center;margin-top:10px">Tippe auf eine Maschine, um sie zu bearbeiten.</p>` : `<p class="hint" style="text-align:center;margin-top:10px">Seriennummer und Dongle kannst du mit der Kamera scannen.</p>`}`;
+    body += `<button class="btn pri big" id="mLive" style="margin-top:6px">${IC.live} LiveView: Typenschilder lesen</button>
+      <button class="btn big" id="mAdd" style="margin-top:10px">${IC.plus} Maschine von Hand hinzufügen</button>
+      <p class="hint" style="text-align:center;margin-top:10px">${d.geraete.length ? 'Tippe auf eine Maschine, um sie zu bearbeiten. ' : ''}In der LiveView liest die Kamera Gerät, Seriennummer und Software direkt vom Typenschild. Fotos machst du dabei mit dem runden Knopf.</p>`;
   } else if (step === 'fotos') {
     body = `<div class="btns two"><button class="btn pri big" id="pCam">${IC.cam} Foto</button><button class="btn big" id="pLib">${IC.img} Mediathek</button></div>
       <div style="margin-top:14px">${e.fotos.length ? `<div class="pgrid">${e.fotos.map(f => `<button class="ph" data-pid="${f.id}"><img alt=""><span>${esc(f.titel || '')}</span></button>`).join('')}</div>` : `<div class="empty">Noch keine Fotos. Fotos von Maschinen (z. B. Typenschild) kannst du auch direkt bei der Maschine aufnehmen.</div>`}</div>`;
@@ -683,6 +736,7 @@ async function renderErf(step) {
   } else if (step === 'maschinen') {
     $$('[data-gi]').forEach(b => b.onclick = () => go(`#/e/${e.id}/m/${d.geraete[+b.dataset.gi].id}`));
     $('#mAdd').onclick = () => addMachine();
+    $('#mLive').onclick = () => liveView();
     for (const el of $$('[data-thumb]')) { const p = prodById(el.dataset.thumb); if (p?.bild) el.innerHTML = `<img src="${p.bild}" alt="">`; }
   } else if (step === 'fotos') {
     $('#pCam').onclick = async () => addPhotos(await pickFiles('image/*', true, false));
@@ -736,6 +790,7 @@ function renderMachine(gid) {
   const phs = e.fotos.filter(f => f.geraetId === g.id);
   $('#app').innerHTML = head(e, null, `Maschine ${i + 1} von ${d.geraete.length}`) + `<main>
     <button class="item" id="gPick" style="margin-bottom:12px"><span class="ic" style="width:64px;height:64px;background:#fff">${p?.bild ? `<img src="${p.bild}" alt="">` : IC.machine}</span><span class="tx"><div class="lbl" style="margin:0">Gehäuse</div><div class="t1">${esc(prodName(g) || 'Antippen zum Auswählen')}</div>${p?.kategorie ? `<div class="t2">${esc(p.kategorie)}</div>` : ''}</span><span class="chev">${IC.chev}</span></button>
+    <button class="btn pri" id="gLive" style="width:100%;margin-bottom:12px">${IC.live} Typenschild live lesen</button>
     <div class="card">
       <div class="f"><label for="gSn">Seriennummer</label><div class="withbtn"><input class="inp" id="gSn" data-k="seriennummer" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next"><button class="scanbtn" data-scan="seriennummer" aria-label="Seriennummer scannen">${IC.scan}</button></div><div id="snWarn"></div></div>
       <div class="f"><label for="gSw">Software</label><input class="inp" id="gSw" data-k="software" autocomplete="off" spellcheck="false" enterkeyhint="next">${sws.length ? `<div class="chips">${sws.map(s => `<button class="chip" data-sw="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}</div>
@@ -753,6 +808,7 @@ function renderMachine(gid) {
   const chkSn = () => { const v = g.seriennummer.trim().toUpperCase(); const dup = v && d.geraete.some(x => x !== g && x.seriennummer.trim().toUpperCase() === v); $('#snWarn').innerHTML = dup ? `<div class="warn" style="margin:8px 0 0">Diese Seriennummer ist hier schon erfasst.</div>` : ''; };
   $('#gSn').addEventListener('input', chkSn); chkSn();
   $('#gPick').onclick = async () => { if (await pickProduct(g)) renderMachine(gid); };
+  $('#gLive').onclick = () => liveView(g);
   $$('[data-sw]').forEach(b => b.onclick = () => { g.software = b.dataset.sw; $('#gSw').value = g.software; markDirty(); });
   $$('[data-scan]').forEach(b => b.onclick = async () => {
     const k = b.dataset.scan; const v = await scanner(k === 'dongle' ? 'Dongle scannen' : 'Seriennummer scannen');
@@ -766,7 +822,7 @@ function renderMachine(gid) {
   };
   $('#gDone').onclick = async () => { await flushSave(); go(`#/e/${e.id}/maschinen`); };
   $('#gNext').onclick = () => addMachine(g);
-  if (!g.gehaeuseId && !g.gehaeuseName && S.stamm?.produkte?.length) setTimeout(() => $('#gPick').click(), 50);
+  if (!g.gehaeuseId && !g.gehaeuseName && S.stamm?.produkte?.length && !g.seriennummer) setTimeout(() => { if (!LV && !$('.sheet-bg')) $('#gPick')?.click(); }, 50);
 }
 async function pickProduct(g) {
   const prods = S.stamm?.produkte || [];
@@ -976,6 +1032,283 @@ function scanner(title) {
     }
   });
 }
+
+/* ---------------- LiveView: Typenschilder live lesen (Texterkennung offline) ---------------- */
+const OCR = { w: null, p: null };
+const OCR_BASE = () => new URL('ocr/', location.href).href;
+function ocrWorker(onProg) {
+  if (OCR.w) return Promise.resolve(OCR.w);
+  if (!OCR.p) OCR.p = (async () => {
+    await loadScript('ocr/tesseract.min.js');
+    const b = OCR_BASE();
+    const w = await Tesseract.createWorker('eng', 1, { workerPath: b + 'worker.min.js', corePath: b, langPath: b, cacheMethod: 'none', workerBlobURL: false, logger: m => onProg?.(m) });
+    await w.setParameters({ preserve_interword_spaces: '1' });
+    OCR.w = w; kvSet('ocrReady', new Date().toISOString()); return w;
+  })().catch(e => { OCR.p = null; throw e; });
+  return OCR.p;
+}
+async function ocrPreload() {
+  try { if (await kvGet('ocrReady') || !navigator.onLine || OCR.p) return; await ocrWorker(); if (!LV) { await OCR.w?.terminate(); OCR.w = null; OCR.p = null; } } catch (e) { console.warn('Texterkennung vorladen', e); }
+}
+
+// Etiketten auf Typenschildern (deutsch/englisch). Reihenfolge wichtig: Dongle vor Seriennummer.
+const LV_LABELS = [
+  ['dongle', /dongle(?:[\s.\-]*(?:nr|no|nummer|id|sn)\b\.?)?/gi],
+  ['seriennummer', /(?:serien[\s.\-]*(?:nr|nummer|no)\b\.?|seriennummer|serial(?:[\s.\-]*(?:no|number|nr)\b\.?)?|\bs\s?\/\s?n\b\.?|\bsn\b\.?|\bser\.?[\s\-]*nr\b\.?|fabrik[\s.\-]*nr\b\.?|ger(?:ä|a)te[\s.\-]*nr\b\.?)/gi],
+  ['software', /(?:software(?:[\s.\-]*(?:version|stand|vers)\b\.?)?|\bsw\b(?:[\s.\-]*(?:version|stand|vers)\b\.?)?|firmware|programm(?:version)?|\bspiel(?:version)?\b)/gi],
+  ['typ', /(?:\btyp(?:e)?\b|modell|\bmodel\b|ger(?:ä|a)tetyp|\bger(?:ä|a)t\b|bezeichnung|\bproduct\b|\bprodukt\b)/gi],
+];
+const LV_NAMES = { seriennummer: 'Seriennummer', software: 'Software', dongle: 'Dongle', gehaeuse: 'Gerät' };
+const lvClean = v => v.replace(/^[\s:;.,\/\\|\-–_=>»]+/, '').replace(/[\s:;,|_=<«]+$/, '').replace(/\s{2,}/g, ' ').trim();
+function lvCode(v) {
+  // Seriennummer/Dongle: nur der erste "Code"-Teil, typische Verwechslungen bei Ziffern-lastigen Codes korrigieren
+  v = lvClean(v).replace(/\s*([\-\/.])\s*/g, '$1');
+  const m = v.match(/[A-Za-z0-9][A-Za-z0-9\-\/.]*[A-Za-z0-9](?:\s[0-9]{2,}(?=\s|$))*/); if (!m) return '';
+  let c = m[0].replace(/\s/g, '');
+  const dig = (c.match(/\d/g) || []).length, alpha = (c.match(/[A-Za-z]/g) || []).length;
+  if ((dig >= 4 && alpha <= 2) || (dig >= 3 && !/[A-HJ-KM-NP-Za-hj-km-np-z]/.test(c))) c = c.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1');
+  return c.length >= 3 && c.length <= 40 && /\d/.test(c) ? c.toUpperCase() : '';
+}
+function lvParse(text) {
+  const lines = text.split('\n').map(l => l.replace(/[‘’`´]/g, "'").trim()).filter(l => l.length > 1);
+  const out = {}; const hasLabel = l => LV_LABELS.some(([, rx]) => { rx.lastIndex = 0; return rx.test(l); });
+  lines.forEach((l, i) => {
+    for (const [k, rx] of LV_LABELS) {
+      rx.lastIndex = 0; let m, end = -1; while ((m = rx.exec(l))) end = m.index + m[0].length;
+      if (end < 0) continue;
+      let v = lvClean(l.slice(end));
+      // Label und nächstes Label in einer Zeile ("Typ / Type:") – Rest nach letztem Doppelpunkt
+      if (!v && lines[i + 1] && !hasLabel(lines[i + 1])) v = lvClean(lines[i + 1]);
+      if (k === 'seriennummer' || k === 'dongle') v = lvCode(v);
+      else v = v.slice(0, 50);
+      if (v && v.length >= 2 && !out[k]) out[k] = v;
+      break;
+    }
+  });
+  return { lines, f: out };
+}
+const lvNorm = s => String(s || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, ' ').trim();
+function lev(a, b) { if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m || n; let p = Array.from({ length: n + 1 }, (_, j) => j); for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; } return p[n]; }
+function lvProduct(text) {
+  // Bestes Produkt aus dem Katalog: alle Wörter des Namens (oder der Herstellerbezeichnung) müssen ähnlich im Text vorkommen
+  const toks = lvNorm(text).split(' ').filter(Boolean); if (!toks.length) return null;
+  let best = null;
+  for (const p of S.stamm?.produkte || []) {
+    for (const nm of [p.name, p.herstellerBez]) {
+      const nt = lvNorm(nm).split(' ').filter(t => t.length >= 2); if (!nt.length) continue;
+      let hit = 0;
+      for (const t of nt) if (toks.some(x => x === t || (t.length >= 4 && x.length >= 3 && lev(x, t) <= (t.length >= 7 ? 2 : 1)))) hit++;
+      const sc = hit / nt.length; const len = nt.join('').length;
+      if (sc === 1 && len >= 4 && (!best || len > best.len)) best = { p, len };
+    }
+  }
+  return best?.p || null;
+}
+
+let LV = null;
+function closeLive() {
+  if (!LV) return; const s = LV; LV = null;
+  s.stop = true; s.stream?.getTracks().forEach(t => t.stop()); clearTimeout(s.t);
+  s.el.classList.add('lv-out'); setTimeout(() => s.el.remove(), 220);
+  // In der LiveView angelegte, aber leer gebliebene Maschinen wieder entfernen
+  const d = s.e?.daten; if (d) { const empty = g => s.created.has(g.id) && !g.seriennummer.trim() && !g.dongle.trim() && !g.notiz.trim() && !s.e.fotos.some(f => f.geraetId === g.id); if (d.geraete.some(empty)) { d.geraete = d.geraete.filter(g => !empty(g)); markDirty(); } }
+  flushSave().then(() => s.done?.());
+}
+async function liveView(startG) {
+  closeScanner(); closeLive();
+  const e = S.cur; const d = e.daten;
+  let g = startG || d.geraete[d.geraete.length - 1];
+  const pending = { created: new Set(), copied: new Set() };
+  if (!g || (g.seriennummer && !startG)) g = newMachine(g);
+  const el = document.createElement('div'); el.className = 'lv';
+  el.innerHTML = `<video playsinline muted autoplay></video><div class="lv-flash"></div>
+    <div class="lv-top"><button class="ibtn" id="lvX" aria-label="Schließen">${IC.close}</button><b>LiveView</b><button class="ibtn hidden" id="lvTorch" aria-label="Licht">${IC.light}</button><button class="ibtn" id="lvTxt" aria-label="Gelesener Text">${IC.text}</button></div>
+    <div class="lv-mbar"><button class="ibtn" id="lvPrev" aria-label="Vorherige Maschine">${IC.back}</button><div class="lv-mt" id="lvMt"></div><button class="ibtn" id="lvNext" aria-label="Nächste Maschine">${IC.chev}</button><button class="lv-new" id="lvNew">${IC.plus} Neu</button></div>
+    <div class="lv-frame" id="lvFrame"><span class="lv-st" id="lvSt">Texterkennung wird geladen …</span></div>
+    <div class="lv-bot"><div id="lvAsk"></div><div class="lv-fields" id="lvF"></div>
+      <div class="lv-ctl"><button class="lv-thumb" id="lvThumb" aria-label="Fotos dieser Maschine"><span id="lvPhN"></span></button><button class="lv-shut" id="lvShut" aria-label="Foto aufnehmen"><i></i></button><button class="btn pri lv-done" id="lvDone">Fertig</button></div></div>`;
+  document.body.append(el);
+  LV = { el, stop: false, votes: {}, g, lines: [], copied: pending.copied, created: pending.created, lastF: {}, e, done: () => route() };
+  const L = LV; const v = $('video', el);
+  const st = t => { const s = $('#lvSt', el); if (s) s.textContent = t; };
+  const idx = () => d.geraete.indexOf(L.g);
+
+  function newMachine(prev) {
+    const n = { id: uid(), gehaeuseId: prev?.gehaeuseId || '', gehaeuseName: prev?.gehaeuseName || '', seriennummer: '', software: prev?.software || '', dongle: '', notiz: '' };
+    const L0 = LV || pending; L0.created.add(n.id);
+    if (n.software) L0.copied.add(n.id + ':software'); if (n.gehaeuseId || n.gehaeuseName) L0.copied.add(n.id + ':gehaeuse');
+    d.geraete.push(n); markDirty(); return n;
+  }
+  const setG = (ng, msg) => { L.g = ng; L.votes = {}; L.ask = null; draw(); if (msg) toast(msg); };
+  function cand(k) {
+    const m = L.votes[k]; if (!m) return null;
+    let best = null; for (const [val, o] of m) if (!best || o.n > best.n || (o.n === best.n && o.t > best.t)) best = { v: val, ...o };
+    return best;
+  }
+  function apply(k, val, silent) {
+    const g = L.g;
+    if (k === 'gehaeuse') { const p = prodById(val); if (p) { g.gehaeuseId = p.id; g.gehaeuseName = p.name; if (!hasDongle(g)) g.dongle = ''; } else { g.gehaeuseId = ''; g.gehaeuseName = val; } }
+    else g[k] = val;
+    markDirty(); if (!silent) beep();
+    L.copied.delete(g.id + ':' + k);
+    draw(); $(`[data-lvk="${k}"]`, el)?.classList.add('lv-pop');
+  }
+  function draw() {
+    if (LV !== L) return;
+    const g = L.g; const i = idx(); const p = prodById(g.gehaeuseId);
+    $('#lvMt', el).innerHTML = `<small>Maschine ${i + 1} von ${d.geraete.length}</small><b>${esc(prodName(g) || 'Gerät noch unbekannt')}</b>`;
+    $('#lvPrev', el).disabled = i <= 0; $('#lvNext', el).disabled = i >= d.geraete.length - 1;
+    const rows = [['gehaeuse', prodName(g)], ['seriennummer', g.seriennummer], ['software', g.software], ...(hasDongle(g) ? [['dongle', g.dongle]] : [])];
+    $('#lvF', el).innerHTML = rows.map(([k, cur]) => {
+      const c = cand(k); const cv = c && (k === 'gehaeuse' ? (prodById(c.v)?.name || c.v) : c.v);
+      const diff = c && cv && String(cv).toUpperCase() !== String(cur || '').toUpperCase();
+      return `<div class="lv-row ${cur ? 'ok' : ''}" data-lvk="${k}"><span class="lv-k">${LV_NAMES[k]}</span><span class="lv-v">${cur ? esc(cur) : '<i>noch nicht gelesen</i>'}</span>${diff ? `<button class="lv-c" data-lvc="${k}" title="Übernehmen">${esc(cv)}<em>${IC.check}</em></button>` : cur ? `<span class="lv-ok">${IC.check}</span>` : ''}</div>`;
+    }).join('');
+    $$('[data-lvc]', el).forEach(b => b.onclick = () => { const k = b.dataset.lvc; const c = cand(k); if (!c) return; if (k === 'seriennummer') return snDecide(c.v, true); apply(k, c.v); });
+    $$('[data-lvk]', el).forEach(r => r.querySelector('.lv-v').onclick = () => editField(r.dataset.lvk));
+    const ask = L.ask;
+    $('#lvAsk', el).innerHTML = ask ? `<div class="lv-ask"><div>Andere Seriennummer erkannt: <b>${esc(ask)}</b></div><div class="btns two"><button class="btn slim" id="lvAskR">Hier ersetzen</button><button class="btn pri slim" id="lvAskN">Neue Maschine</button></div></div>` : '';
+    if (ask) {
+      $('#lvAskR', el).onclick = () => { L.ask = null; apply('seriennummer', ask); };
+      $('#lvAskN', el).onclick = () => {
+        const n = newMachine(L.g); n.seriennummer = ask; L.ask = null;
+        // Werte vom selben Schild gleich mitnehmen
+        const lf = L.lastF; if (lf.seriennummer === ask) { if (lf.software) { n.software = lf.software; L.copied.delete(n.id + ':software'); } if (lf.dongle && hasDongle(n)) n.dongle = lf.dongle; }
+        markDirty(); sunFun('wink'); setG(n, `Maschine ${d.geraete.length} angelegt`);
+      };
+    }
+    const phs = e.fotos.filter(f => f.geraetId === g.id);
+    $('#lvPhN', el).textContent = phs.length || '';
+    const th = $('#lvThumb', el); const last = phs[phs.length - 1];
+    if (last) photoUrl(last.id).then(u => { th.style.backgroundImage = `url("${u}")`; }); else th.style.backgroundImage = '';
+  }
+  async function editField(k) {
+    const g = L.g;
+    if (k === 'gehaeuse') { L.pause = true; const ok = await pickProduct(g); L.pause = false; if (ok) draw(); return; }
+    const val = await sheet(`<h3>${LV_NAMES[k]}</h3><div class="f"><input class="inp" id="lvIn" value="${esc(g[k] || '')}" autocomplete="off" spellcheck="false" ${k !== 'software' ? 'autocapitalize="characters"' : ''} enterkeyhint="done"></div><button class="btn pri big" id="lvInOk">Übernehmen</button>`, (sh, close) => {
+      const i = $('#lvIn', sh); setTimeout(() => i.focus(), 250);
+      const ok = () => close('v:' + i.value.trim()); $('#lvInOk', sh).onclick = ok; i.onkeydown = ev => { if (ev.key === 'Enter') ok(); };
+    });
+    if (val != null) { g[k] = val.slice(2); markDirty(); draw(); }
+  }
+  function snDecide(sn, manual) {
+    const g = L.g; const other = d.geraete.find(x => x !== g && snEq(x.seriennummer, sn));
+    if (other) { if (!manual && L.lastSw === sn) return; L.lastSw = sn; setG(other, `Maschine ${d.geraete.indexOf(other) + 1} erkannt`); beep(); return; }
+    if (!g.seriennummer) return apply('seriennummer', sn, false);
+    if (manual) { apply('seriennummer', sn); return; }
+    if (!snEq(g.seriennummer, sn) && L.ask !== sn) { L.ask = sn; draw(); }
+  }
+  function vote(k, val) {
+    if (!val) return null;
+    const m = L.votes[k] ||= new Map();
+    const o = m.get(val) || { n: 0, t: 0 }; o.n++; o.t = Date.now(); m.set(val, o);
+    return o.n;
+  }
+  function onText(text) {
+    const { lines, f } = lvParse(text); L.lines = lines.length ? lines : L.lines; if (f.seriennummer) L.lastF = f;
+    const g = L.g;
+    const prod = lvProduct([f.typ, ...lines].filter(Boolean).join(' '));
+    if (prod) { const n = vote('gehaeuse', prod.id); if (n >= 2 && cand('gehaeuse')?.v === prod.id && (!g.gehaeuseId || L.copied.has(g.id + ':gehaeuse')) && g.gehaeuseId !== prod.id) apply('gehaeuse', prod.id); }
+    else if (f.typ) vote('gehaeuse', f.typ);
+    for (const k of ['seriennummer', 'software', 'dongle']) {
+      if (!f[k]) continue; const n = vote(k, f[k]);
+      if (n >= 2 && cand(k)?.v === f[k]) {
+        if (k === 'seriennummer') snDecide(f[k]);
+        else if ((!g[k] || L.copied.has(g.id + ':' + k)) && g[k] !== f[k]) apply(k, f[k]);
+      }
+    }
+    const got = Object.keys(f).filter(k => k !== 'typ').length + (prod ? 1 : 0);
+    $('#lvFrame', el)?.classList.toggle('hit', got > 0);
+    st(got ? 'Typenschild erkannt' : lines.length ? 'Text gefunden – näher ran oder gerader halten' : 'Typenschild in den Rahmen halten');
+    draw();
+  }
+
+  // Bedienung
+  $('#lvX', el).onclick = closeLive; $('#lvDone', el).onclick = () => { sunFun('hop'); closeLive(); };
+  $('#lvPrev', el).onclick = () => { const i = idx(); if (i > 0) setG(d.geraete[i - 1]); };
+  $('#lvNext', el).onclick = () => { const i = idx(); if (i < d.geraete.length - 1) setG(d.geraete[i + 1]); };
+  $('#lvNew', el).onclick = () => { setG(newMachine(L.g), `Maschine ${d.geraete.length} angelegt`); sunFun('wink'); };
+  $('#lvTxt', el).onclick = async () => {
+    L.pause = true;
+    const ls = L.lines.slice(0, 30);
+    const r = await sheet(`<h3>Gelesener Text</h3>${ls.length ? `<p class="hint" style="margin-top:-6px">Zeile antippen und zuordnen, falls etwas nicht automatisch erkannt wurde.</p><div class="lv-lines">${ls.map((l, i) => `<button class="item" data-li="${i}"><span class="tx"><div class="t1" style="font-family:ui-monospace,Menlo,monospace;font-size:15px">${esc(l)}</div></span></button>`).join('')}</div>` : `<p class="hint">Noch kein Text gelesen. Halte das Typenschild in den gelben Rahmen.</p>`}<button class="btn" data-close="" style="width:100%;margin-top:10px">Schließen</button>`,
+      (sh, close) => $$('[data-li]', sh).forEach(b => b.onclick = () => close('l:' + b.dataset.li)));
+    if (r?.startsWith('l:')) {
+      const line = ls[+r.slice(2)];
+      const k = await sheet(`<h3>Zuordnen</h3><div class="res" style="background:var(--card);border-radius:14px;padding:12px;margin-bottom:12px;font-family:ui-monospace,Menlo,monospace">${esc(line)}</div>
+        <div class="btns">${['seriennummer', 'software', ...(hasDongle(L.g) ? ['dongle'] : []), 'gehaeuse', 'notiz'].map(k => `<button class="btn" data-close="${k}">als ${k === 'notiz' ? 'Notiz' : LV_NAMES[k]}</button>`).join('')}<button class="btn" data-close="">Abbrechen</button></div>`);
+      if (k) {
+        let val = lvClean(line.replace(/^[^:]{0,30}:\s*/, '')) || lvClean(line);
+        if (k === 'seriennummer' || k === 'dongle') val = lvCode(val) || val.toUpperCase();
+        if (k === 'notiz') { L.g.notiz = [L.g.notiz, lvClean(line)].filter(Boolean).join(' · '); markDirty(); toast('Zur Notiz hinzugefügt'); draw(); }
+        else if (k === 'seriennummer') snDecide(val, true);
+        else if (k === 'gehaeuse') apply('gehaeuse', lvProduct(val)?.id || val);
+        else apply(k, val);
+      }
+    }
+    L.pause = false;
+  };
+  $('#lvThumb', el).onclick = async () => {
+    const ph = e.fotos.filter(f => f.geraetId === L.g.id); if (!ph.length) return toast('Noch keine Fotos – mit dem runden Knopf aufnehmen');
+    L.pause = true; await lightbox(ph[ph.length - 1].id, () => { L.pause = false; draw(); });
+  };
+  $('#lvShut', el).onclick = async () => {
+    if (!v.videoWidth) return;
+    const c = document.createElement('canvas'); const s = Math.min(1, 2200 / Math.max(v.videoWidth, v.videoHeight));
+    c.width = Math.round(v.videoWidth * s); c.height = Math.round(v.videoHeight * s); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    const fl = $('.lv-flash', el); fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
+    shutterSound();
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .88)); if (!blob) return toast('Foto konnte nicht gespeichert werden', true);
+    const id = uid(); await blobSet(id, blob); const g = L.g; const gi = d.geraete.indexOf(g);
+    e.fotos.push({ id, datei: `${today()}_${id}.jpg`, titel: `Maschine ${gi + 1}${g.seriennummer ? ' · SN ' + g.seriennummer : ''}`, am: new Date().toISOString(), von: S.user, geraetId: g.id });
+    markDirty(); draw(); $('#lvThumb', el).classList.remove('lv-pop'); void el.offsetWidth; $('#lvThumb', el).classList.add('lv-pop');
+  };
+  draw();
+
+  // Kamera + Texterkennung
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Kamera wird von diesem Browser nicht unterstützt.');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } } });
+    if (LV !== L) { stream.getTracks().forEach(t => t.stop()); return; }
+    L.stream = stream; v.srcObject = stream; await v.play().catch(() => { });
+    const track = stream.getVideoTracks()[0];
+    try {
+      const caps = track.getCapabilities?.() || {};
+      if (caps.torch) { const tb = $('#lvTorch', el); tb.classList.remove('hidden'); let on = false; tb.onclick = () => { on = !on; tb.classList.toggle('on', on); track.applyConstraints({ advanced: [{ torch: on }] }).catch(() => { }); }; }
+      if (caps.focusMode?.includes?.('continuous')) track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => { });
+    } catch { }
+  } catch (err) {
+    st(err.name === 'NotAllowedError' ? 'Kein Zugriff auf die Kamera (Einstellungen › Safari › Kamera)' : 'Kamera nicht verfügbar: ' + err.message); return;
+  }
+  let w;
+  try {
+    w = await ocrWorker(m => { if (m.status === 'loading tesseract core' || m.status === 'loading language traineddata') st(`Texterkennung wird geladen … ${Math.round((m.progress || 0) * 100)} %`); });
+  } catch (err) {
+    st(navigator.onLine ? 'Texterkennung konnte nicht geladen werden' : 'Texterkennung einmal mit Internet laden (Einstellungen)'); console.warn(err); return;
+  }
+  if (LV !== L) return;
+  st('Typenschild in den Rahmen halten');
+  const cv = document.createElement('canvas'); const cx = cv.getContext('2d', { willReadFrequently: true });
+  const loop = async () => {
+    if (LV !== L || L.stop) return;
+    if (!L.pause && !document.hidden && v.videoWidth && !$('.sheet-bg') && !$('.lb')) {
+      // Ausschnitt = gelber Rahmen (Video ist mit object-fit:cover skaliert)
+      const fr = $('#lvFrame', el).getBoundingClientRect(); const vr = v.getBoundingClientRect();
+      const sc = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
+      const ox = (vr.width - v.videoWidth * sc) / 2, oy = (vr.height - v.videoHeight * sc) / 2;
+      let sx = (fr.left - vr.left - ox) / sc, sy = (fr.top - vr.top - oy) / sc, sw = fr.width / sc, sh = fr.height / sc;
+      sx = Math.max(0, sx); sy = Math.max(0, sy); sw = Math.min(v.videoWidth - sx, sw); sh = Math.min(v.videoHeight - sy, sh);
+      const k = Math.min(1, 1600 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+      cx.drawImage(v, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      $('#lvFrame', el)?.classList.add('busy');
+      try { const r = await w.recognize(cv); if (LV === L) onText(r.data.text || ''); } catch (err) { console.warn(err); }
+      $('#lvFrame', el)?.classList.remove('busy');
+    }
+    if (LV === L) L.t = setTimeout(loop, 250);
+  };
+  loop();
+}
+function shutterSound() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); const n = a.createBufferSource(); const b = a.createBuffer(1, a.sampleRate * .06, a.sampleRate); const ch = b.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length) ** 2; n.buffer = b; const g = a.createGain(); g.gain.value = .25; n.connect(g); g.connect(a.destination); n.start(); setTimeout(() => a.close(), 200); } catch { } }
 
 /* ---------------- Senden (Export als ZIP) ---------------- */
 const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
@@ -1305,7 +1638,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) clou
 async function renderSettings() {
   let est = null; try { est = await navigator.storage?.estimate?.(); } catch { }
   const persisted = await navigator.storage?.persisted?.().catch(() => false);
-  const list = await erfAll();
+  const list = await erfAll(); const ocrOk = !!(await kvGet('ocrReady'));
   $('#app').innerHTML = `<div class="top"><div class="top-row"><button class="ibtn" id="sBack" aria-label="Zurück">${IC.back}</button><h1>Einstellungen</h1></div></div><main>
     <div class="card"><div class="f"><label for="sName">Dein Name</label><input class="inp" id="sName" value="${esc(S.user)}" autocomplete="name"></div></div>
     ${cloudSettingsHTML()}
@@ -1314,6 +1647,8 @@ async function renderSettings() {
       <button class="btn" id="sStamm">${IC.dl} ${S.stamm ? 'Neu laden' : 'Laden'}</button>
       <p class="hint" style="margin-top:10px">ServiceDATA am PC hält die Datei <b>ServiceDATA-Mobil-Daten.json</b> im OneDrive-Ordner <b>ServiceDATA-Austausch</b> automatisch aktuell. Hier einfach diese Datei auswählen. Das iPhone merkt sich den Ordner, danach reicht oben auf der Startseite ein Tipp auf „aktualisieren“.</p></div>
     ${!cloudOn() ? `<div class="card"><h2>Senden mit zwei Tipps</h2>${SC_STEPS}</div>` : ''}
+    <div class="card"><h2>LiveView (Texterkennung)</h2><p class="hint" style="margin-top:-4px" id="sOcrSt">${ocrOk ? '✓ Offline bereit. Typenschilder werden direkt auf dem iPhone gelesen, ohne Internet.' : 'Wird einmalig geladen (ca. 7 MB), danach funktioniert die LiveView auch ohne Internet. Am besten im WLAN.'}</p>
+      ${ocrOk ? '' : `<button class="btn" id="sOcr" style="margin-top:4px">${IC.dl} Jetzt laden</button>`}</div>
     <div class="card"><h2>Speicher</h2><dl class="sum"><dt>Erfassungen</dt><dd>${list.length}</dd><dt>Fotos</dt><dd>${list.reduce((s, e) => s + e.fotos.length, 0)}</dd>${est?.usage != null ? `<dt>Belegt</dt><dd>${(est.usage / 1048576).toFixed(1).replace('.', ',')} MB</dd>` : ''}<dt>Dauerhaft</dt><dd>${persisted ? 'ja' : (standalone() ? 'nein' : 'nein – App auf Home-Bildschirm legen')}</dd></dl>
       ${list.some(e => erfState(e) === 'gesendet') ? `<button class="btn" id="sClean" style="margin-top:12px">${IC.trash} Gesendete Erfassungen aufräumen</button><p class="hint" style="margin-top:8px">Löscht nur Erfassungen, die gesendet und danach nicht mehr geändert wurden.</p>` : ''}</div>
     <div class="foot">ServiceDATA Mobil ${VERSION} · Offline-fähig${navigator.serviceWorker?.controller ? ' ✓' : ''}</div>
@@ -1321,6 +1656,12 @@ async function renderSettings() {
   $('#sBack').onclick = () => go('#/');
   $('#sName').onchange = async ev => { const v = ev.target.value.trim(); if (!v) return; S.user = v; await kvSet('user', v); toast('Name gespeichert'); };
   $('#sStamm').onclick = async () => { if (await importStamm()) renderSettings(); };
+  $('#sOcr') && ($('#sOcr').onclick = async () => {
+    const b = $('#sOcr'); b.disabled = true; busy(1);
+    try { await ocrWorker(m => { if (m.progress != null && /loading/.test(m.status)) b.textContent = `Lädt … ${Math.round(m.progress * 100)} %`; }); if (!LV) { await OCR.w?.terminate(); OCR.w = null; OCR.p = null; } toast('Texterkennung ist jetzt offline bereit'); renderSettings(); }
+    catch (e) { toast('Laden fehlgeschlagen: ' + e.message, true, 4000); b.disabled = false; b.textContent = 'Erneut versuchen'; }
+    finally { busy(-1); }
+  });
   wireCloudSettings();
   $('#sClean') && ($('#sClean').onclick = async () => {
     const del = list.filter(e => erfState(e) === 'gesendet');
@@ -1386,6 +1727,7 @@ function wireCloudSettings() {
   if (!$('#hdrSun')) { const sp = $('#splash'); if (sp) { sp.style.transition = 'opacity .35s'; sp.style.opacity = 0; setTimeout(() => sp.remove(), 350); } }
   else { await new Promise(r => setTimeout(r, Math.max(0, 1150 - (performance.now() - t0)))); splashOut(); }
   cloudAuto();
+  setTimeout(ocrPreload, 8000);
 })();
 </script>
 </body>
