@@ -255,6 +255,11 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
 @keyframes lvFlash{0%{opacity:.85}100%{opacity:0}}
 .lv-top{position:absolute;left:0;right:0;top:0;padding:calc(var(--st) + 8px) 10px 4px;display:flex;align-items:center;gap:6px;background:linear-gradient(rgba(0,0,0,.75),transparent)}
 .lv-top b{flex:1;font-size:17px}
+.lv-seg{flex:1;display:flex;background:rgba(0,23,52,.78);border-radius:12px;padding:3px;max-width:280px;margin:0 auto}
+.lv-seg button{flex:1;border:0;background:transparent;color:#fff;font-weight:700;font-size:14px;padding:8px 6px;border-radius:9px}
+.lv-seg button.on{background:var(--yellow);color:var(--ink)}
+.lv.qr .lv-frame{left:9%;right:9%;height:auto;aspect-ratio:1/1;top:calc(var(--st) + 112px)}
+.lv.qr .lv-fields{display:none}
 .lv-top .ibtn.on{background:var(--yellow);color:var(--ink)}
 .lv-mbar{position:absolute;left:10px;right:10px;top:calc(var(--st) + 60px);display:flex;align-items:center;gap:4px;background:rgba(0,23,52,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;padding:4px}
 .lv-mbar .ibtn{width:40px;height:40px}
@@ -315,7 +320,7 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.6';
+const VERSION = '2.7';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -813,7 +818,7 @@ function renderMachine(gid) {
   $('#gSn').addEventListener('input', chkSn); chkSn();
   $('#gPick').onclick = async () => { if (await pickProduct(g)) renderMachine(gid); };
   $('#gLive').onclick = () => liveView(g);
-  $('#gQr').onclick = () => scanQR(g, () => renderMachine(gid));
+  $('#gQr').onclick = () => liveView(g, 'qr');
   for (const [id, key] of [['#gMo', 'Modell'], ['#gBj', 'Baujahr']]) $(id).addEventListener('change', () => { setNoteSeg(g, key, $(id).value.trim()); $('#gNo').value = g.notiz; markDirty(); });
   $$('[data-sw]').forEach(b => b.onclick = () => { g.software = b.dataset.sw; $('#gSw').value = g.software; markDirty(); });
   $$('[data-scan]').forEach(b => b.onclick = async () => {
@@ -1196,7 +1201,7 @@ function closeLive() {
   const d = s.e?.daten; if (d) { const empty = g => s.created.has(g.id) && !g.seriennummer.trim() && !g.dongle.trim() && !(g.maschinenId || '').trim() && !s.e.fotos.some(f => f.geraetId === g.id); if (d.geraete.some(empty)) { d.geraete = d.geraete.filter(g => !empty(g)); markDirty(); } }
   flushSave().then(() => s.done?.());
 }
-async function liveView(startG) {
+async function liveView(startG, mode = 'ocr') {
   closeScanner(); closeLive();
   const e = S.cur; const d = e.daten;
   const pending = { created: new Set(), copied: new Set() };
@@ -1204,7 +1209,7 @@ async function liveView(startG) {
   if (!g || (g.seriennummer && !startG)) g = newMachine(g);
   const el = document.createElement('div'); el.className = 'lv';
   el.innerHTML = `<video playsinline muted autoplay></video><div class="lv-flash"></div>
-    <div class="lv-top"><button class="ibtn" id="lvX" aria-label="Schließen">${IC.close}</button><b>LiveView</b><button class="ibtn hidden" id="lvTorch" aria-label="Licht">${IC.light}</button><button class="ibtn" id="lvTxt" aria-label="Gelesener Text">${IC.text}</button></div>
+    <div class="lv-top"><button class="ibtn" id="lvX" aria-label="Schließen">${IC.close}</button><div class="lv-seg" id="lvSeg"><button data-mode="ocr">Typenschild</button><button data-mode="qr">Service-QR</button></div><button class="ibtn hidden" id="lvTorch" aria-label="Licht">${IC.light}</button><button class="ibtn" id="lvTxt" aria-label="Gelesener Text">${IC.text}</button></div>
     <div class="lv-mbar"><button class="ibtn" id="lvPrev" aria-label="Vorherige Maschine">${IC.back}</button><div class="lv-mt" id="lvMt"></div><button class="ibtn" id="lvNext" aria-label="Nächste Maschine">${IC.chev}</button><button class="lv-new" id="lvNew">${IC.plus} Neu</button></div>
     <div class="lv-frame" id="lvFrame"><span class="lv-st" id="lvSt">Kamera wird gestartet …</span></div>
     <div class="lv-bot"><div id="lvAsk"></div><div class="lv-fields" id="lvF"></div>
@@ -1319,10 +1324,20 @@ async function liveView(startG) {
     const key = L.g.id + '|' + t; if (L.qrSeen.has(key)) return true; L.qrSeen.add(key);
     const ch = applyQR(e, L.g, q); beep(); sunFun('hop');
     $('#lvFrame', el)?.classList.add('hit'); st('Servicemenü-QR übernommen');
-    toast('Servicemenü-QR: ' + ch.join(', '), false, 3200); draw(); return true;
+    toast('Servicemenü-QR: ' + ch.join(', '), false, 3200); draw();
+    if (L.mode === 'qr') setTimeout(() => { if (LV === L && L.mode === 'qr') setMode('ocr'); }, 1400);
+    return true;
   }
 
   // Bedienung
+  const setMode = m => {
+    L.mode = m; el.classList.toggle('qr', m === 'qr'); L.qn = 0;
+    $$('#lvSeg [data-mode]', el).forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+    $('#lvFrame', el)?.classList.remove('hit', 'busy');
+    st(m === 'qr' ? 'QR-Code möglichst groß in den Rahmen halten' : (L.ocrReady ? 'Typenschild in den Rahmen halten' : 'Texterkennung wird geladen …'));
+  };
+  L.setMode = setMode;
+  $$('#lvSeg [data-mode]', el).forEach(b => b.onclick = () => setMode(b.dataset.mode));
   $('#lvX', el).onclick = closeLive; $('#lvDone', el).onclick = () => { sunFun('hop'); closeLive(); };
   $('#lvPrev', el).onclick = () => { const i = idx(); if (i > 0) setG(d.geraete[i - 1]); };
   $('#lvNext', el).onclick = () => { const i = idx(); if (i < d.geraete.length - 1) setG(d.geraete[i + 1]); };
@@ -1332,7 +1347,7 @@ async function liveView(startG) {
     const ls = L.lines.slice(0, 30);
     const r = await sheet(`<h3>Gelesener Text</h3>${ls.length ? `<p class="hint" style="margin-top:-6px">Zeile antippen und zuordnen, falls etwas nicht automatisch erkannt wurde.</p><div class="lv-lines">${ls.map((l, i) => `<button class="item" data-li="${i}"><span class="tx"><div class="t1" style="font-family:ui-monospace,Menlo,monospace;font-size:15px">${esc(l)}</div></span></button>`).join('')}</div>` : `<p class="hint">Noch kein Text gelesen. Halte das Typenschild in den gelben Rahmen.</p>`}<button class="btn" id="lvQr" style="width:100%;margin-top:10px">${IC.scan} Servicemenü-QR scannen</button><button class="btn" data-close="" style="width:100%;margin-top:10px">Schließen</button>`,
       (sh, close) => { $$('[data-li]', sh).forEach(b => b.onclick = () => close('l:' + b.dataset.li)); $('#lvQr', sh).onclick = () => close('qr'); });
-    if (r === 'qr') { st('Servicemenü-QR in den Rahmen halten'); }
+    if (r === 'qr') setMode('qr');
     if (r?.startsWith('l:')) {
       const line = ls[+r.slice(2)];
       const k = await sheet(`<h3>Zuordnen</h3><div class="res" style="background:var(--card);border-radius:14px;padding:12px;margin-bottom:12px;font-family:ui-monospace,Menlo,monospace">${esc(line)}</div>
@@ -1384,8 +1399,9 @@ async function liveView(startG) {
   let qrDet = null; qrDetector().then(x => { qrDet = x; }).catch(err => console.warn(err));
   let o = null;
   st('Texterkennung wird geladen …');
-  ocrEngine(p => st(`Texterkennung wird geladen … ${Math.round(p * 100)} %`)).then(x => { o = x; if (LV === L) st('Typenschild oder Servicemenü-QR in den Rahmen halten'); })
-    .catch(err => { console.warn(err); if (LV === L) st(navigator.onLine ? 'Texterkennung konnte nicht geladen werden' : 'Texterkennung einmal mit Internet laden (Einstellungen)'); });
+  setMode(mode);
+  ocrEngine(p => { if (L.mode === 'ocr') st(`Texterkennung wird geladen … ${Math.round(p * 100)} %`); }).then(x => { o = x; L.ocrReady = true; if (LV === L && L.mode === 'ocr') st('Typenschild in den Rahmen halten'); })
+    .catch(err => { console.warn(err); if (LV === L && L.mode === 'ocr') st(navigator.onLine ? 'Texterkennung konnte nicht geladen werden' : 'Texterkennung einmal mit Internet laden (Einstellungen)'); });
   const cv = document.createElement('canvas'); const cx = cv.getContext('2d', { willReadFrequently: true });
   const qv = document.createElement('canvas'); const qx = qv.getContext('2d', { willReadFrequently: true });
   const loop = async () => {
@@ -1397,13 +1413,21 @@ async function liveView(startG) {
         // Abwechselnd: mittleres Quadrat und ganzer sichtbarer Bereich
         const vr = v.getBoundingClientRect(); const sc = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
         const visW = Math.min(v.videoWidth, vr.width / sc), visH = Math.min(v.videoHeight, vr.height / sc);
-        const sq = (L.qn = (L.qn || 0) + 1) % 2 === 1;
-        const cw = sq ? Math.min(visW, visH) * .92 : visW, ch = sq ? cw : visH;
-        const k = Math.min(1, 1400 / Math.max(cw, ch)); qv.width = Math.round(cw * k); qv.height = Math.round(ch * k);
-        qx.drawImage(v, (v.videoWidth - cw) / 2, (v.videoHeight - ch) / 2, cw, ch, 0, 0, qv.width, qv.height);
+        const n = (L.qn = (L.qn || 0) + 1);
+        let cx0, cy0, cw, ch;
+        if (L.mode === 'qr' && n % 3 !== 0) {
+          // QR-Modus: genau der Rahmen bzw. etwas größer, in voller Auflösung
+          const fr = $('#lvFrame', el).getBoundingClientRect(); const ox = (vr.width - v.videoWidth * sc) / 2, oy = (vr.height - v.videoHeight * sc) / 2;
+          const grow = n % 3 === 1 ? 1.08 : 1.4; const cxm = (fr.left + fr.width / 2 - vr.left - ox) / sc, cym = (fr.top + fr.height / 2 - vr.top - oy) / sc;
+          cw = ch = Math.min(v.videoWidth, v.videoHeight, fr.width / sc * grow); cx0 = Math.max(0, Math.min(v.videoWidth - cw, cxm - cw / 2)); cy0 = Math.max(0, Math.min(v.videoHeight - ch, cym - ch / 2));
+        } else {
+          const sq = n % 2 === 1; cw = sq ? Math.min(visW, visH) * .92 : visW; ch = sq ? cw : visH; cx0 = (v.videoWidth - cw) / 2; cy0 = (v.videoHeight - ch) / 2;
+        }
+        const k = Math.min(1, (L.mode === 'qr' ? 1800 : 1400) / Math.max(cw, ch)); qv.width = Math.round(cw * k); qv.height = Math.round(ch * k);
+        qx.drawImage(v, cx0, cy0, cw, ch, 0, 0, qv.width, qv.height);
         try { const t = await qrDet(qv); if (t) qr = onQR(t); } catch { }
       }
-      if (!qr && o) {
+      if (!qr && o && L.mode === 'ocr') {
         // Ausschnitt = gelber Rahmen (Video ist mit object-fit:cover skaliert)
         const fr = $('#lvFrame', el).getBoundingClientRect(); const vr = v.getBoundingClientRect();
         const sc = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
@@ -1417,7 +1441,7 @@ async function liveView(startG) {
         $('#lvFrame', el)?.classList.remove('busy');
       }
     }
-    if (LV === L) L.t = setTimeout(loop, o ? 150 : 400);
+    if (LV === L) L.t = setTimeout(loop, L.mode === 'qr' ? 40 : o ? 150 : 400);
   };
   loop();
 }

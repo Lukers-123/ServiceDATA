@@ -1,5 +1,5 @@
 /* ServiceDATA Mobil – Service Worker (Offline-Betrieb). Bei jeder neuen Version VERSION ändern. */
-const VERSION = '2.6';
+const VERSION = '2.7';
 const CACHE = 'sdm-' + VERSION;
 const OCR_CACHE = 'sdocr-paddle1';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'zxing.min.js', 'msal-browser.min.js', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-512-maskable.png', 'icons/sun-96.png', 'icons/sun-rays.png', 'icons/sun-face.png', 'icons/sun-face-wink.png'];
