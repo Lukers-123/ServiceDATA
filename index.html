@@ -216,7 +216,7 @@ input[type=date].inp{display:block}
 'use strict';
 /* =========================================================================
    ServiceDATA Mobil  –  Datenerfassung vor Ort (offline)
-   Version 2.0 (Stufe 2: Abgleich über Microsoft 365)
+   Version 2.1 (Austauschordner + Kurzbefehl; Stufe 2 optional über Microsoft 365)
    - Daten bleiben im Gerät (IndexedDB), auch ohne Netz.
    - "An ServiceDATA senden" erzeugt eine ZIP-Datei (erfassung.json + fotos/),
      die über das Teilen-Menü in den gemeinsamen OneDrive-Ordner
@@ -226,7 +226,7 @@ input[type=date].inp{display:block}
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.0';
+const VERSION = '2.1';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -436,7 +436,7 @@ async function renderHome() {
   const fertig = S.list.filter(e => erfState(e) === 'gesendet');
   const einsatzItem = x => `<button class="item" data-plan="${esc(x.id)}"><span class="ic">${IC.cal}</span><span class="tx"><div class="t1">${esc(x.ort || 'Ohne Location')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</div><div class="t2"><span class="tag geplant">${esc(fmtDate(x.datum))}</span>${(x.geraete || []).length} Maschinen${x.orderNr ? ' · Order ' + esc(x.orderNr) : ''}</div></span><span class="chev">${IC.chev}</span></button>`;
   const erfItem = e => { const st = erfState(e); const first = e.fotos[0]; return `<button class="item" data-erf="${e.id}"><span class="ic" ${first ? `data-ph="${first.id}"` : ''}>${IC.machine}</span><span class="tx"><div class="t1">${esc(erfTitle(e))}</div><div class="t2"><span class="tag ${st}">${STATE_LBL[st]}</span>${esc(fmtDate(e.daten.datum))} · ${e.daten.geraete.length} Masch. · ${e.fotos.length} Fotos</div></span><span class="chev">${IC.chev}</span></button>`; };
-  $('#app').innerHTML = `<div class="top"><div class="top-row"><div class="brand"><img src="icons/sun-96.png" alt=""><div><b>ServiceDATA</b><small>Mobil · ${esc(S.user)}</small></div></div><button class="ibtn" id="hSet" aria-label="Einstellungen">${IC.gear}</button></div>${cloudChip()}</div>
+  $('#app').innerHTML = `<div class="top"><div class="top-row"><div class="brand"><img src="icons/sun-96.png" alt=""><div><b>ServiceDATA</b><small>Mobil · ${esc(S.user)}</small></div></div><button class="ibtn" id="hSet" aria-label="Einstellungen">${IC.gear}</button></div>${cloudCfgOk() ? cloudChip() : fileChip()}</div>
   <main>
     ${isIOS && !standalone() ? `<div class="card ios-tip">${IC.alert}<div class="hint"><b>Tipp:</b> Für den Offline-Betrieb die App auf den Home-Bildschirm legen: in Safari unten auf <span class="kbd-share">${IC.share}</span> <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>. Sonst kann iOS die Daten nach einiger Zeit löschen.</div></div>` : ''}
     <button class="btn pri big" id="hNew">${IC.plus} Neue Installation erfassen</button>
@@ -451,6 +451,7 @@ async function renderHome() {
     <div class="foot">ServiceDATA Mobil ${VERSION}${S.stamm && S.stamm.quelle !== 'cloud' ? ` · Daten vom ${esc(fmtDT(S.stamm.erstelltAm))}` : ''}</div>
   </main>`;
   $('#hSet').onclick = () => go('#/einstellungen'); wireCloudChip();
+  $('#fileChip') && ($('#fileChip').onclick = async () => { if (await importStamm()) renderHome(); });
   $('#hInst') && ($('#hInst').onclick = () => go('#/i'));
   $('#hNew').onclick = async () => { const e = newErf(blankDaten()); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`); };
   $('#hLogin') && ($('#hLogin').onclick = () => cloudLogin().catch(e => toast(e.message, true)));
@@ -575,7 +576,7 @@ async function renderErf(step) {
       ${st === 'gesendet' ? `<div class="okbox">Gesendet am ${esc(fmtDT(e.gesendetAm))}. Änderungen danach kannst du einfach noch einmal senden: ServiceDATA aktualisiert dann dieselbe Installation.</div>` : st === 'geaendert' ? `<div class="warn">Seit dem Senden am ${esc(fmtDT(e.gesendetAm))} geändert. Bitte noch einmal senden.</div>` : ''}
       <button class="btn pri big" id="xSend">${IC.send} ${st === 'entwurf' ? 'An ServiceDATA senden' : st === 'wartet' ? 'Jetzt senden' : 'Erneut senden'}</button>
       ${cloudOn() ? `<p class="hint" style="margin-top:10px">Wird direkt in den gemeinsamen Ordner gesendet. Ohne Netz merkt sich die App die Erfassung und sendet sie automatisch nach.</p><button class="btn slim" id="xShare" style="width:100%;margin-top:6px">${IC.share} Stattdessen als Datei teilen</button>`
-      : `<p class="hint" style="margin-top:10px">Es öffnet sich das Teilen-Menü. Wähle <b>„In Dateien sichern“</b> → <b>OneDrive</b> → Ordner <b>ServiceDATA › mobil › eingang</b>. Ohne Netz einfach später senden – die Daten bleiben im iPhone.</p>`}
+      : `<p class="hint" style="margin-top:10px">Im Teilen-Menü den Kurzbefehl <b>„An ServiceDATA“</b> wählen, oder <b>„In Dateien sichern“</b> › <b>OneDrive</b> › <b>ServiceDATA-Austausch › eingang</b>. Ohne Netz einfach später senden, die Daten bleiben im iPhone. <a href="#/einstellungen" style="white-space:nowrap">Kurzbefehl einrichten</a></p>`}
       <button class="btn danger slim" id="xDel" style="width:100%;margin-top:20px">${IC.trash} Erfassung löschen</button>`;
   }
   $('#app').innerHTML = head(e, step) + `<main>${body}</main>` + navBar(step);
@@ -1207,7 +1208,8 @@ async function renderSettings() {
     <div class="card" ${cloudOn() ? 'style="display:none"' : ''}><h2>Daten aus ServiceDATA</h2>
       ${S.stamm ? `<dl class="sum" style="margin-bottom:12px"><dt>Stand</dt><dd>${esc(fmtDT(S.stamm.erstelltAm))}${S.stamm.von ? ' · ' + esc(S.stamm.von) : ''}</dd><dt>Produkte</dt><dd>${S.stamm.produkte?.length || 0}</dd><dt>Locations</dt><dd>${S.stamm.locations?.length || 0}</dd><dt>Einsätze</dt><dd>${S.stamm.einsaetze?.length || 0}</dd><dt>Installationen</dt><dd>${S.stamm.installationen?.length || 0}</dd></dl>` : `<p class="hint">Noch nicht geladen.</p>`}
       <button class="btn" id="sStamm">${IC.dl} ${S.stamm ? 'Neu laden' : 'Laden'}</button>
-      <p class="hint" style="margin-top:10px">Am PC in ServiceDATA: <b>iPhone-Erfassung › Daten fürs iPhone erstellen</b>. Hier dann die Datei <b>ServiceDATA-Mobil-Daten.json</b> aus OneDrive (Ordner ServiceDATA › mobil) auswählen.</p></div>
+      <p class="hint" style="margin-top:10px">ServiceDATA am PC hält die Datei <b>ServiceDATA-Mobil-Daten.json</b> im OneDrive-Ordner <b>ServiceDATA-Austausch</b> automatisch aktuell. Hier einfach diese Datei auswählen. Das iPhone merkt sich den Ordner, danach reicht oben auf der Startseite ein Tipp auf „aktualisieren“.</p></div>
+    ${!cloudOn() ? `<div class="card"><h2>Senden mit zwei Tipps</h2>${SC_STEPS}</div>` : ''}
     <div class="card"><h2>Speicher</h2><dl class="sum"><dt>Erfassungen</dt><dd>${list.length}</dd><dt>Fotos</dt><dd>${list.reduce((s, e) => s + e.fotos.length, 0)}</dd>${est?.usage != null ? `<dt>Belegt</dt><dd>${(est.usage / 1048576).toFixed(1).replace('.', ',')} MB</dd>` : ''}<dt>Dauerhaft</dt><dd>${persisted ? 'ja' : (standalone() ? 'nein' : 'nein – App auf Home-Bildschirm legen')}</dd></dl>
       ${list.some(e => erfState(e) === 'gesendet') ? `<button class="btn" id="sClean" style="margin-top:12px">${IC.trash} Gesendete Erfassungen aufräumen</button><p class="hint" style="margin-top:8px">Löscht nur Erfassungen, die gesendet und danach nicht mehr geändert wurden.</p>` : ''}</div>
     <div class="foot">ServiceDATA Mobil ${VERSION} · Offline-fähig${navigator.serviceWorker?.controller ? ' ✓' : ''}</div>
@@ -1224,6 +1226,19 @@ async function renderSettings() {
   });
 }
 
+function fileChip() {
+  if (!S.stamm) return '';
+  const h = (Date.now() - new Date(S.stamm.erstelltAm)) / 3600000;
+  return `<button class="cchip ${h > 24 ? 'warn' : ''}" id="fileChip">${IC.dl}<span>Daten ${esc(fmtAgo(S.stamm.erstelltAm))} · aktualisieren</span></button>`;
+}
+const SC_STEPS = `<ol class="hint" style="padding-left:20px;margin:0;font-size:14.5px;line-height:1.55">
+  <li>App <b>Kurzbefehle</b> öffnen und oben rechts auf <b>+</b> tippen.</li>
+  <li>Oben den Namen auf <b>An ServiceDATA</b> ändern.</li>
+  <li><b>Aktion hinzufügen</b> › nach <b>„Datei sichern“</b> suchen und antippen.</li>
+  <li>In der Aktion <b>„Fragen, wo gesichert werden soll“</b> ausschalten und als Ordner <b>OneDrive › ServiceDATA-Austausch › eingang</b> wählen. <b>„Überschreiben“</b> einschalten.</li>
+  <li>Unten auf <b>ⓘ</b> (Details) tippen › <b>„Im Share-Sheet anzeigen“</b> einschalten. Bei „Eingabe“ nur <b>Dateien</b> lassen.</li>
+  <li>Fertig. Ab jetzt: <b>An ServiceDATA senden</b> › im Teilen-Menü <b>An ServiceDATA</b>. Zwei Tipps, ohne Ordner suchen.</li></ol>
+  <p class="hint" style="margin-top:8px">Lässt sich OneDrive in Schritt 4 nicht auswählen, einfach weiter „In Dateien sichern“ nehmen. Das iPhone merkt sich den zuletzt benutzten Ordner.</p>`;
 function cloudSettingsHTML() {
   const ok = cloudCfgOk();
   return `<div class="card"><h2>Microsoft 365</h2>
