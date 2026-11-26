@@ -1,5 +1,5 @@
 /* ServiceDATA Mobil – Service Worker (Offline-Betrieb). Bei jeder neuen Version VERSION ändern. */
-const VERSION = '2.1';
+const VERSION = '2.2';
 const CACHE = 'sdm-' + VERSION;
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'zxing.min.js', 'msal-browser.min.js', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-512-maskable.png', 'icons/sun-96.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting())); });

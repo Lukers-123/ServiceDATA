@@ -226,7 +226,7 @@ input[type=date].inp{display:block}
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.1';
+const VERSION = '2.2';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -1014,10 +1014,12 @@ async function cloudRoot() {
   let root = { driveId: it.parentReference?.driveId || it.remoteItem?.parentReference?.driveId, itemId: it.id, name: it.name, link: C.cfg.ordnerLink };
   C.root = root;
   // Datenbank direkt im Ordner oder im Unterordner "ServiceDATA"
+  // Austauschordner (Datenbank bleibt auf dem Netzlaufwerk): enthält ServiceDATA-Mobil-Daten.json und/oder eingang/
   if (!await gfetch(itemPath('installdb.json'))) {
     const sub = await gjson(itemPath('ServiceDATA'));
     if (sub?.id && await gfetch(`/drives/${root.driveId}/items/${sub.id}:/installdb.json:`)) root = { ...root, itemId: sub.id, name: sub.name };
-    else { C.root = null; throw new Error('Im freigegebenen Ordner wurde keine ServiceDATA-Datenbank gefunden.'); }
+    else if (await gfetch(itemPath('ServiceDATA-Mobil-Daten.json')) || await gfetch(itemPath('eingang'))) root = { ...root, mode: 'austausch' };
+    else { C.root = null; throw new Error('Im freigegebenen Ordner wurde weder eine ServiceDATA-Datenbank noch ein Austauschordner (ServiceDATA-Mobil-Daten.json) gefunden.'); }
   }
   C.root = root; await kvSet('cloudRoot', root); return root;
 }
@@ -1043,6 +1045,17 @@ function cloudPull(force = false) {
     try {
       await cloudRoot();
       const cache = (await kvGet('cloudCache')) || { inst: {}, prod: {}, img: {}, cats: null, plat: null };
+      if (C.root.mode === 'austausch') {
+        // Austauschordner: die vom PC automatisch erstellte Datei laden (nur wenn geändert)
+        const it = await gjson(itemPath('ServiceDATA-Mobil-Daten.json'));
+        if (!it) throw new Error('Im Austauschordner liegt noch keine ServiceDATA-Mobil-Daten.json. Am PC unter iPhone-Erfassung den Austauschordner einrichten.');
+        if (force || !S.stamm || (await kvGet('cloudDatMod')) !== it.lastModifiedDateTime) {
+          const j = await dlJSON(it); if (j?.format !== STAMM_FORMAT) throw new Error('Datei ServiceDATA-Mobil-Daten.json ist ungültig');
+          j.quelle = 'cloud'; S.stamm = j; await kvSet('stamm', j); await kvSet('cloudDatMod', it.lastModifiedDateTime);
+        }
+        C.lastPull = new Date().toISOString(); await kvSet('cloudLastPull', C.lastPull); C.err = ''; setCloudBadge('ok');
+        return true;
+      }
       // Installationen: je Ordner die installation.json, nur geänderte neu laden
       const dirs = (await listAll(itemPath('installationen') + '/children?$expand=children&$top=200')).filter(x => x.folder);
       const seen = new Set();
@@ -1134,7 +1147,7 @@ async function cloudPhotos(x) {
 /* ---- Senden ---- */
 async function cloudUpload(file) {
   await cloudRoot();
-  const p = itemPath('mobil/eingang/' + file.name);
+  const p = itemPath((C.root.mode === 'austausch' ? 'eingang/' : 'mobil/eingang/') + file.name);
   if (file.size <= 3.5 * 1048576) { await gfetch(p + '/content', { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: file }); return; }
   const s = await gjson(p + '/createUploadSession', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
   if (!s?.uploadUrl) throw new Error('Upload konnte nicht gestartet werden');
