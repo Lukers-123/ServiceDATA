@@ -16,4 +16,4 @@ In `config.json` eintragen (keine Geheimnisse, nur Kennungen):
 
 Ist `config.json` leer, arbeitet die App wie in Stufe 1 (Senden über das Teilen-Menü).
 
-Barcode-Erkennung: [ZXing](https://github.com/zxing-js/library) (Apache-2.0, siehe `LICENSE-zxing.txt`). Anmeldung: [MSAL.js](https://github.com/AzureAD/microsoft-authentication-library-for-js) (MIT). Texterkennung (LiveView): [Tesseract.js](https://github.com/naptha/tesseract.js) mit Sprachdaten `eng` (Apache-2.0, siehe `ocr/LICENSE-tesseract.txt`), läuft komplett auf dem Gerät.
+Barcode-Erkennung: [ZXing](https://github.com/zxing-js/library) (Apache-2.0, siehe `LICENSE-zxing.txt`). Anmeldung: [MSAL.js](https://github.com/AzureAD/microsoft-authentication-library-for-js) (MIT). Texterkennung (LiveView): [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)-Modelle über [eSearch-OCR](https://github.com/xushengfeng/eSearch-OCR) und [ONNX Runtime Web](https://onnxruntime.ai) (Apache-2.0/MIT, siehe `ocr/LICENSE-*.txt`), läuft komplett auf dem Gerät.

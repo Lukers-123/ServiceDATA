@@ -1,0 +1,3 @@
+ONNX Runtime Web 1.22.0 – Copyright (c) Microsoft Corporation – MIT License
+PaddleOCR-Modelle (PP-OCRv5 det, PP-OCRv3 en rec) – PaddlePaddle Authors – Apache License 2.0
+eSearch-OCR 8.5.2 – xushengfeng – Apache License 2.0 (siehe LICENSE-esearch-ocr.txt)
