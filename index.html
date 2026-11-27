@@ -320,7 +320,7 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.8';
+const VERSION = '2.9';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -1788,7 +1788,11 @@ async function renderSettings() {
       <div class="f"><label for="ncUrl">Nextcloud-Adresse</label><input class="inp" id="ncUrl" type="url" placeholder="https://cloud.firma.de" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div class="f"><label for="ncUser">Benutzername</label><input class="inp" id="ncUser" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div class="f"><label for="ncPw">App-Passwort</label><input class="inp" id="ncPw" type="password" autocomplete="off" placeholder="Nextcloud › Einstellungen › Sicherheit › App-Passwort"></div>
-      <button class="btn" id="ncTest">Verbindung testen</button><div id="ncRes" style="margin-top:10px"></div></div>
+      <button class="btn" id="ncTest">Verbindung testen</button><div id="ncRes" style="margin-top:10px"></div>
+      <details class="nc-sc" style="margin-top:14px"><summary><b>Kurzbefehl „An ServiceDATA“ für Nextcloud einrichten</b></summary>
+        <p class="hint">Der Kurzbefehl lädt die Erfassung direkt in euren Nextcloud-Ordner hoch, ohne Nextcloud-App und ohne Admin. Oben Adresse, Benutzername und App-Passwort eintragen, dann hier den Ordner.</p>
+        <div class="f"><label for="ncDir">Ordner in deiner Nextcloud</label><input class="inp" id="ncDir" value="ServiceDATA-Austausch/eingang" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <button class="btn" id="ncGen">Werte für den Kurzbefehl erzeugen</button><div id="ncOut"></div></details></div>
     <div class="card"><h2>LiveView (Texterkennung)</h2><p class="hint" style="margin-top:-4px" id="sOcrSt">${ocrOk ? '✓ Offline bereit. Typenschilder werden direkt auf dem iPhone gelesen, ohne Internet.' : 'Wird einmalig geladen (ca. 25 MB), danach funktioniert die LiveView auch ohne Internet. Am besten im WLAN.'}</p>
       ${ocrOk ? '' : `<button class="btn" id="sOcr" style="margin-top:4px">${IC.dl} Jetzt laden</button>`}</div>
     <div class="card"><h2>Speicher</h2><dl class="sum"><dt>Erfassungen</dt><dd>${list.length}</dd><dt>Fotos</dt><dd>${list.reduce((s, e) => s + e.fotos.length, 0)}</dd>${est?.usage != null ? `<dt>Belegt</dt><dd>${(est.usage / 1048576).toFixed(1).replace('.', ',')} MB</dd>` : ''}<dt>Dauerhaft</dt><dd>${persisted ? 'ja' : (standalone() ? 'nein' : 'nein – App auf Home-Bildschirm legen')}</dd></dl>
@@ -1798,6 +1802,25 @@ async function renderSettings() {
   $('#sBack').onclick = () => go('#/');
   $('#sName').onchange = async ev => { const v = ev.target.value.trim(); if (!v) return; S.user = v; await kvSet('user', v); toast('Name gespeichert'); };
   $('#sStamm').onclick = async () => { if (await importStamm()) renderSettings(); };
+  $('#ncGen').onclick = () => {
+    let base = $('#ncUrl').value.trim().replace(/\/+$/, '').replace(/\/(index\.php|apps|login).*$/, ''); const user = $('#ncUser').value.trim(), pw = $('#ncPw').value;
+    const dir = $('#ncDir').value.trim().replace(/^\/+|\/+$/g, '');
+    if (!base || !user || !pw || !dir) { $('#ncOut').innerHTML = '<div class="warn" style="margin-top:10px">Bitte oben Adresse, Benutzername und App-Passwort und hier den Ordner eintragen.</div>'; return; }
+    if (!/^https?:\/\//.test(base)) base = 'https://' + base;
+    const url = `${base}/remote.php/dav/files/${encodeURIComponent(user)}/${dir.split('/').map(encodeURIComponent).join('/')}/`;
+    const auth = 'Basic ' + btoa(String.fromCharCode(...new TextEncoder().encode(user + ':' + pw)));
+    const box = (id, label, v) => `<div class="lbl" style="margin-top:12px">${label}</div><div class="withbtn"><input class="inp" id="${id}" value="${esc(v)}" readonly style="font-family:ui-monospace,Menlo,monospace;font-size:13px"><button class="scanbtn" data-copy="${id}" aria-label="Kopieren">${IC.copy}</button></div>`;
+    $('#ncOut').innerHTML = box('ncU', 'A · Adresse (Anfang)', url) + box('ncA', 'B · Header „Authorization“', auth) + `
+      <ol class="hint" style="margin:14px 0 0;padding-left:20px;line-height:1.55">
+        <li>App <b>Kurzbefehle</b> › <b>+</b> › Name <b>„An ServiceDATA“</b>. Unten auf <b>ⓘ</b> › <b>„Im Share-Sheet anzeigen“</b> einschalten, Typ nur <b>Dateien</b>.</li>
+        <li>Aktion <b>„Details von Dateien abrufen“</b> hinzufügen: <b>Name</b> von <b>Kurzbefehleingabe</b>.</li>
+        <li>Aktion <b>„Inhalte von URL abrufen“</b> hinzufügen. Als URL Wert <b>A</b> einfügen, direkt dahinter die Variable <b>Name</b> und dann <b>.zip</b> tippen.</li>
+        <li>Dort auf <b>„Mehr anzeigen“</b>: Methode <b>PUT</b>. Header hinzufügen: Schlüssel <b>Authorization</b>, Wert <b>B</b> einfügen. Anfragetext <b>Datei</b> › <b>Kurzbefehleingabe</b>.</li>
+        <li>Aktion <b>„Mitteilung anzeigen“</b>: „An ServiceDATA gesendet“.</li>
+      </ol>
+      <p class="hint" style="margin-top:8px">Danach in der App „An ServiceDATA senden“ › im Teilen-Menü <b>„An ServiceDATA“</b>. Wert B enthält dein App-Passwort: nur in deinen eigenen Kurzbefehl einfügen. Du kannst das App-Passwort in der Nextcloud jederzeit widerrufen.</p>`;
+    $$('#ncOut [data-copy]').forEach(b => b.onclick = async () => { const i = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(i.value); toast('Kopiert'); } catch { i.select(); document.execCommand('copy'); toast('Kopiert'); } });
+  };
   $('#ncTest').onclick = async () => {
     const out = (cls, t) => { $('#ncRes').innerHTML = `<div class="${cls}">${t}</div>`; };
     let base = $('#ncUrl').value.trim().replace(/\/+$/, '').replace(/\/(index\.php|apps|login).*$/, ''); const user = $('#ncUser').value.trim(), pw = $('#ncPw').value;
