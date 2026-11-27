@@ -151,6 +151,16 @@ input[type=date].inp{display:block}
 .gtile small{display:block;color:var(--muted);font-weight:500;font-size:12px;margin-top:2px}
 
 /* Segment */
+.ktiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px}
+.ktile{position:relative;border:2px solid var(--line);background:var(--bg2);border-radius:16px;padding:16px 14px;min-height:112px;text-align:left;color:var(--text);display:flex;flex-direction:column;gap:6px;font:inherit}
+.ktile svg{width:28px;height:28px;color:var(--acc)}
+.ktile b{font-size:18px}
+.ktile small{color:var(--muted);font-size:13px;line-height:1.3}
+.ktile:active:not(:disabled){transform:scale(.98)}
+.ktile:disabled{opacity:.55}
+.ktile .soon{position:absolute;top:10px;right:10px;font-size:10px;font-weight:750;letter-spacing:.3px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:var(--acc-soft);color:var(--acc)}
+.seg button:disabled{opacity:.45}
+.seg button small{display:block;font-size:10px;font-weight:700;opacity:.8}
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;background:var(--inp);border-radius:14px;padding:5px}
 .seg button{border:0;border-radius:10px;min-height:48px;background:transparent;font-weight:650;font-size:15px;color:var(--muted)}
 .seg button.on{background:var(--yellow);color:var(--ink)}
@@ -365,7 +375,7 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '3.2';
+const VERSION = '3.3';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -447,9 +457,20 @@ const LAENDER = { 'Deutschland': ['Baden-Württemberg', 'Bayern', 'Berlin', 'Bra
   'Schweiz': ['Aargau', 'Appenzell Ausserrhoden', 'Appenzell Innerrhoden', 'Basel-Landschaft', 'Basel-Stadt', 'Bern', 'Freiburg', 'Genf', 'Glarus', 'Graubünden', 'Jura', 'Luzern', 'Neuenburg', 'Nidwalden', 'Obwalden', 'Schaffhausen', 'Schwyz', 'Solothurn', 'St. Gallen', 'Tessin', 'Thurgau', 'Uri', 'Waadt', 'Wallis', 'Zug', 'Zürich'],
   'Liechtenstein': [], 'Niederlande': [], 'Belgien': [], 'Luxemburg': [], 'Dänemark': [], 'Polen': [], 'Tschechien': [], 'Italien': [], 'Spanien': [], 'Frankreich': [], 'Vereinigtes Königreich': [] };
 
-const blankDaten = () => ({ datum: today(), ort: '', floor: '', bank: '', land: '', bundesland: '', orderNr: '', jurisdiction: '', techniker: [S.user].filter(Boolean), status: 'installiert', inBearbeitung: false, stoerungText: '', kontakte: [], geraete: [], notizen: '', einstellungen: '' });
+/* Installationskategorien wie am PC */
+const KATS = [
+  { id: 'mii', label: 'MII', desc: 'Aktuelle Maske', ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><rect x="8" y="5" width="8" height="6" rx="1"/><path d="M8 15h8M8 18h5"/></svg>' },
+  { id: 'magie', label: 'Magie', desc: 'Magie-Geräte, ohne Dongle', ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/></svg>' },
+  { id: 'gamingarts', label: 'Gaming Arts', desc: 'Kommt bald', soon: true, ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="3"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>' },
+  { id: 'spintech', label: 'Spintech', desc: 'Kommt bald', soon: true, ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/></svg>' }];
+const katOf = d => (d && KATS.some(k => k.id === d.kategorie)) ? d.kategorie : 'mii';
+const katLabel = id => (KATS.find(k => k.id === id) || KATS[0]).label;
+const pickKat = () => sheet(`<h3>Welche Installation?</h3><p class="hint" style="margin-top:-4px">Wähle die Kategorie. Du kannst sie später im Schritt Ort noch ändern.</p>
+  <div class="ktiles">${KATS.map(k => `<button class="ktile" ${k.soon ? 'disabled' : `data-close="${k.id}"`}>${k.soon ? '<span class="soon">Coming soon</span>' : ''}${k.ic}<b>${esc(k.label)}</b><small>${esc(k.desc)}</small></button>`).join('')}</div>
+  <div class="btns" style="margin-top:12px"><button class="btn" data-close="">Abbrechen</button></div>`);
+const blankDaten = () => ({ kategorie: 'mii', datum: today(), ort: '', floor: '', bank: '', land: '', bundesland: '', orderNr: '', jurisdiction: '', techniker: [S.user].filter(Boolean), status: 'installiert', inBearbeitung: false, stoerungText: '', kontakte: [], geraete: [], notizen: '', einstellungen: '' });
 const newErf = (daten, basis) => ({ id: uid(), erstelltAm: new Date().toISOString(), geaendertAm: new Date().toISOString(), von: S.user, basisId: basis?.id || '', basisRev: basis?.rev || 0, basis: basis ? basisSnap(basis) : null, daten, fotos: [], gesendetAm: '', gesendetStand: '' });
-const DATEN_KEYS = ['datum', 'mehrtaegig', 'datumBis', 'ort', 'floor', 'bank', 'land', 'bundesland', 'orderNr', 'jurisdiction', 'techniker', 'status', 'inBearbeitung', 'stoerungText', 'kontakte', 'geraete', 'notizen', 'einstellungen'];
+const DATEN_KEYS = ['kategorie', 'datum', 'mehrtaegig', 'datumBis', 'ort', 'floor', 'bank', 'land', 'bundesland', 'orderNr', 'jurisdiction', 'techniker', 'status', 'inBearbeitung', 'stoerungText', 'kontakte', 'geraete', 'notizen', 'einstellungen'];
 const pickDaten = b => { const x = {}; for (const k of DATEN_KEYS) if (b[k] !== undefined) x[k] = clone(b[k]); x.geraete = (x.geraete || []).map(g => ({ id: g.id, gehaeuseId: g.gehaeuseId || '', seriennummer: g.seriennummer || '', software: g.software || '', dongle: g.dongle || '', notiz: g.notiz || '', modell: g.modell || '', baujahr: g.baujahr || '', maschinenId: g.maschinenId || '' })); x.kontakte = (x.kontakte || []).filter(k => k.name || k.telefon || k.email).map(k => ({ name: k.name || '', rolle: k.rolle || '', telefon: k.telefon || '', email: k.email || '' })); return x; };
 const basisSnap = b => pickDaten(b);
 const erfTitle = e => e.daten.ort ? `${e.daten.ort}${e.daten.bank ? ' · Bank ' + e.daten.bank : ''}` : 'Neue Installation';
@@ -658,7 +679,7 @@ async function renderHome() {
   $('#hSet').onclick = () => go('#/einstellungen'); wireCloudChip();
   $('#fileChip') && ($('#fileChip').onclick = async () => { if (await importStamm()) renderHome(); });
   $('#hInst') && ($('#hInst').onclick = () => go('#/i'));
-  $('#hNew').onclick = async () => { const e = newErf(blankDaten()); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`); };
+  $('#hNew').onclick = async () => { const k = await pickKat(); if (!k) return; const e = newErf({ ...blankDaten(), kategorie: k }); await erfPut(e); S.cur = e; go(`#/e/${e.id}/ort`); };
   $('#hLogin') && ($('#hLogin').onclick = () => cloudLogin().catch(e => toast(e.message, true)));
   $('#hStamm') && ($('#hStamm').onclick = async () => { if (await importStamm()) renderHome(); });
   $$('[data-erf]').forEach(b => b.onclick = () => go(`#/e/${b.dataset.erf}/ort`));
@@ -733,7 +754,8 @@ async function renderErf(step) {
     const locs = locIndex();
     const loc = locOf(d.ort);
     const techs = uniq([...(S.stamm?.techniker || [])]).filter(t => !d.techniker.some(x => x.toLowerCase() === t.toLowerCase()));
-    body = `<div class="card">
+    body = `<div class="card"><h2>Kategorie</h2><div class="seg" id="katSeg">${KATS.map(k => `<button data-k="${k.id}" class="${katOf(d) === k.id ? 'on' : ''}" ${k.soon ? 'disabled' : ''}>${esc(k.label)}${k.soon ? '<small>bald</small>' : ''}</button>`).join('')}</div></div>
+      <div class="card">
       <div class="f"><label for="fOrt">Location *</label><input class="inp" id="fOrt" data-k="ort" list="locList" autocomplete="off" placeholder="z. B. Casino Musterstadt" enterkeyhint="next"><datalist id="locList">${locs.map(l => `<option value="${esc(l.ort)}">`).join('')}</datalist>
       ${!d.ort && locs.length ? `<div class="chips">${locs.slice(0, 8).map(l => `<button class="chip" data-loc="${esc(l.ort)}">${esc(l.ort)}</button>`).join('')}</div>` : ''}</div>
       <div class="row2"><div class="f"><label for="fFloor">Floor</label><input class="inp" id="fFloor" data-k="floor" list="floorList" autocomplete="off" enterkeyhint="next"><datalist id="floorList">${(loc?.floors || []).map(f => `<option value="${esc(f)}">`).join('')}</datalist></div>
@@ -777,7 +799,7 @@ async function renderErf(step) {
       <div class="tgl"><span>Noch in Bearbeitung</span><label class="sw"><input type="checkbox" data-k="inBearbeitung"><span></span></label></div></div>
       <div class="card"><div class="f"><label>Notizen</label><textarea class="inp" data-k="notizen" placeholder="Tipp: Mikrofon auf der Tastatur zum Diktieren"></textarea></div>
       <div class="f"><label>Einstellungen</label><textarea class="inp" data-k="einstellungen" placeholder="z. B. Denomination, Limits, Konfiguration"></textarea></div></div>
-      <div class="card"><h2>Zusammenfassung</h2><dl class="sum"><dt>Location</dt><dd>${esc(d.ort || '–')}</dd><dt>Datum</dt><dd>${esc(fmtDate(d.datum))}</dd>${d.bank ? `<dt>Bank</dt><dd>${esc(d.bank)}</dd>` : ''}<dt>Maschinen</dt><dd>${d.geraete.length}</dd><dt>Fotos</dt><dd>${e.fotos.length}</dd><dt>Kontakte</dt><dd>${d.kontakte.filter(k => k.name).length}</dd></dl>
+      <div class="card"><h2>Zusammenfassung</h2><dl class="sum"><dt>Kategorie</dt><dd>${esc(katLabel(katOf(d)))}</dd><dt>Location</dt><dd>${esc(d.ort || '–')}</dd><dt>Datum</dt><dd>${esc(fmtDate(d.datum))}</dd>${d.bank ? `<dt>Bank</dt><dd>${esc(d.bank)}</dd>` : ''}<dt>Maschinen</dt><dd>${d.geraete.length}</dd><dt>Fotos</dt><dd>${e.fotos.length}</dd><dt>Kontakte</dt><dd>${d.kontakte.filter(k => k.name).length}</dd></dl>
       <div style="margin-top:10px">${miss.length ? miss.map(m => `<div class="chk no">${IC.alert}${esc(m)}</div>`).join('') : `<div class="chk ok">${IC.check}Alles Wichtige ist erfasst</div>`}</div></div>
       ${st === 'wartet' ? `<div class="warn" style="background:rgba(120,170,255,.12);border-color:rgba(120,170,255,.4);color:var(--blue-t)">Wird automatisch gesendet, sobald das iPhone wieder Netz hat.</div>` : ''}
       ${st === 'gesendet' ? `<div class="okbox">Gesendet am ${esc(fmtDT(e.gesendetAm))}. Änderungen danach kannst du einfach noch einmal senden: ServiceDATA aktualisiert dann dieselbe Installation.</div>` : st === 'geaendert' ? `<div class="warn">Seit dem Senden am ${esc(fmtDT(e.gesendetAm))} geändert. Bitte noch einmal senden.</div>` : ''}
@@ -792,6 +814,7 @@ async function renderErf(step) {
   const main = $('main');
   if (step === 'ort') {
     bindInputs(main, d);
+    $$('#katSeg [data-k]').forEach(b => b.onclick = () => { if (b.disabled) return; d.kategorie = b.dataset.k; $$('#katSeg [data-k]').forEach(x => x.classList.toggle('on', x === b)); markDirty(); });
     $('#fOrt').addEventListener('change', () => applyLoc());
     $$('[data-loc]').forEach(b => b.onclick = () => { d.ort = b.dataset.loc; markDirty(); applyLoc(true); });
     $('#fLand').addEventListener('change', () => { d.bundesland = ''; $('#fBl').innerHTML = blOpts(d.land, ''); markDirty(); });
@@ -896,7 +919,8 @@ function renderMachine(gid) {
   if (!g.gehaeuseId && !g.gehaeuseName && S.stamm?.produkte?.length && !g.seriennummer) setTimeout(() => { if (!LV && !$('.sheet-bg')) $('#gPick')?.click(); }, 50);
 }
 async function pickProduct(g) {
-  const prods = S.stamm?.produkte || [];
+  const kat = katOf(S.cur?.daten), all = S.stamm?.produkte || [];
+  const prods = all.some(p => p.plattform === kat) ? all.filter(p => (p.plattform || 'mii') === kat || p.id === g.gehaeuseId) : all;
   const cats = uniq(prods.map(p => p.kategorie));
   const res = await sheet(`<h3>Gehäuse wählen</h3>
     ${prods.length ? `<div class="f"><input class="inp" id="pq" placeholder="Suchen …" autocomplete="off"></div>
@@ -963,7 +987,7 @@ async function renderInstall(id, hl) {
   const open = (await erfAll()).find(e => e.basisId === x.id && erfState(e) !== 'gesendet');
   $('#app').innerHTML = `<div class="top"><div class="top-row"><button class="ibtn" id="dBack" aria-label="Zurück">${IC.back}</button><h1>${esc(x.ort || 'Installation')}${x.bank ? ' · Bank ' + esc(x.bank) : ''}</h1></div></div><main>
     <div class="card"><div style="margin-bottom:10px">${ST_TAG(x)}${x.inBearbeitung ? '<span class="tag geaendert">In Bearbeitung</span>' : ''}</div>
-      <dl class="sum">${dt('Datum', fmtDate(x.datum) + (x.mehrtaegig && x.datumBis ? ' – ' + fmtDate(x.datumBis) : ''))}${dt('Ort', loc)}${dt('Order-Nr.', x.orderNr)}${dt('Jurisdiction', x.jurisdiction)}${dt('Techniker', (x.techniker || []).join(', '))}${dt('Geändert', x.geaendertAm ? fmtDT(x.geaendertAm) + (x.geaendertVon ? ' · ' + x.geaendertVon : '') : '')}</dl>
+      <dl class="sum">${dt('Kategorie', katLabel(katOf(x)))}${dt('Datum', fmtDate(x.datum) + (x.mehrtaegig && x.datumBis ? ' – ' + fmtDate(x.datumBis) : ''))}${dt('Ort', loc)}${dt('Order-Nr.', x.orderNr)}${dt('Jurisdiction', x.jurisdiction)}${dt('Techniker', (x.techniker || []).join(', '))}${dt('Geändert', x.geaendertAm ? fmtDT(x.geaendertAm) + (x.geaendertVon ? ' · ' + x.geaendertVon : '') : '')}</dl>
       ${x.status === 'stoerung' && x.stoerungText ? `<div class="warn" style="margin:12px 0 0">${esc(x.stoerungText)}</div>` : ''}</div>
     <div class="sec-t">Maschinen (${(x.geraete || []).length})</div>
     ${(x.geraete || []).map((g, i) => { const p = prodById(g.gehaeuseId); return `<div class="mcard" ${isHl(g) ? 'style="border-color:var(--yellow);box-shadow:0 0 0 2px rgba(255,204,0,.35)" data-hl' : ''}><span class="num">${i + 1}</span><span class="thumb">${p?.bild ? `<img src="${p.bild}" alt="">` : IC.machine}</span><span class="tx"><div class="t1">${esc(p?.name || g.gehaeuseName || 'Gehäuse unbekannt')}</div>
