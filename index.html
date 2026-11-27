@@ -31,7 +31,8 @@
 html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
 body{min-height:100vh;min-height:100dvh;overscroll-behavior-y:none}
 /* Statusleiste: fester dunkelblauer Streifen, damit iOS oben keinen grauen Verlauf über das Logo legt */
-html{background:#001734}
+html,body{background:#001734}
+#app{background:var(--bg);min-height:100vh;min-height:100dvh}
 .sbar{position:fixed;left:0;right:0;top:0;height:var(--st);background:#001734;z-index:40;pointer-events:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -39,7 +40,7 @@ a{color:var(--acc)}
 .hidden{display:none!important}
 
 /* Kopf */
-.top{position:sticky;top:0;z-index:20;background:var(--top);color:var(--top-text);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(var(--st) + 10px) 12px 8px;border-bottom:1px solid var(--line)}
+.top{position:sticky;top:0;z-index:20;background:var(--top);color:var(--top-text);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(var(--st) + 18px) 12px 8px;border-bottom:1px solid var(--line)}
 .top-row{display:flex;align-items:center;gap:8px;min-height:44px}
 .top h1{font-size:18px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
 .top .brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
@@ -364,7 +365,7 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '3.1';
+const VERSION = '3.2';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
