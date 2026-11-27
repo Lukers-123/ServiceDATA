@@ -320,7 +320,7 @@ main.page-in>:nth-child(2){animation-delay:.03s}main.page-in>:nth-child(3){anima
    - Spätere Stufe 2 (Microsoft-Graph-Abgleich): nur die Funktion send() bzw.
      ein Transport-Modul TRANSPORT ergänzen; Datenformat bleibt gleich.
    ========================================================================= */
-const VERSION = '2.7';
+const VERSION = '2.8';
 const FORMAT = 'servicedata-mobil';
 const FORMAT_VER = 1;
 const STAMM_FORMAT = 'servicedata-mobil-daten';
@@ -1784,6 +1784,11 @@ async function renderSettings() {
       <button class="btn" id="sStamm">${IC.dl} ${S.stamm ? 'Neu laden' : 'Laden'}</button>
       <p class="hint" style="margin-top:10px">ServiceDATA am PC hält die Datei <b>ServiceDATA-Mobil-Daten.json</b> im OneDrive-Ordner <b>ServiceDATA-Austausch</b> automatisch aktuell. Hier einfach diese Datei auswählen. Das iPhone merkt sich den Ordner, danach reicht oben auf der Startseite ein Tipp auf „aktualisieren“.</p></div>
     ${!cloudOn() ? `<div class="card"><h2>Senden mit zwei Tipps</h2>${SC_STEPS}</div>` : ''}
+    <div class="card"><h2>Nextcloud-Verbindung testen</h2><p class="hint" style="margin-top:-4px">Prüft nur, ob die App mit eurer Nextcloud sprechen darf. Es wird nichts gespeichert und nichts hochgeladen.</p>
+      <div class="f"><label for="ncUrl">Nextcloud-Adresse</label><input class="inp" id="ncUrl" type="url" placeholder="https://cloud.firma.de" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="f"><label for="ncUser">Benutzername</label><input class="inp" id="ncUser" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="f"><label for="ncPw">App-Passwort</label><input class="inp" id="ncPw" type="password" autocomplete="off" placeholder="Nextcloud › Einstellungen › Sicherheit › App-Passwort"></div>
+      <button class="btn" id="ncTest">Verbindung testen</button><div id="ncRes" style="margin-top:10px"></div></div>
     <div class="card"><h2>LiveView (Texterkennung)</h2><p class="hint" style="margin-top:-4px" id="sOcrSt">${ocrOk ? '✓ Offline bereit. Typenschilder werden direkt auf dem iPhone gelesen, ohne Internet.' : 'Wird einmalig geladen (ca. 25 MB), danach funktioniert die LiveView auch ohne Internet. Am besten im WLAN.'}</p>
       ${ocrOk ? '' : `<button class="btn" id="sOcr" style="margin-top:4px">${IC.dl} Jetzt laden</button>`}</div>
     <div class="card"><h2>Speicher</h2><dl class="sum"><dt>Erfassungen</dt><dd>${list.length}</dd><dt>Fotos</dt><dd>${list.reduce((s, e) => s + e.fotos.length, 0)}</dd>${est?.usage != null ? `<dt>Belegt</dt><dd>${(est.usage / 1048576).toFixed(1).replace('.', ',')} MB</dd>` : ''}<dt>Dauerhaft</dt><dd>${persisted ? 'ja' : (standalone() ? 'nein' : 'nein – App auf Home-Bildschirm legen')}</dd></dl>
@@ -1793,6 +1798,24 @@ async function renderSettings() {
   $('#sBack').onclick = () => go('#/');
   $('#sName').onchange = async ev => { const v = ev.target.value.trim(); if (!v) return; S.user = v; await kvSet('user', v); toast('Name gespeichert'); };
   $('#sStamm').onclick = async () => { if (await importStamm()) renderSettings(); };
+  $('#ncTest').onclick = async () => {
+    const out = (cls, t) => { $('#ncRes').innerHTML = `<div class="${cls}">${t}</div>`; };
+    let base = $('#ncUrl').value.trim().replace(/\/+$/, '').replace(/\/(index\.php|apps|login).*$/, ''); const user = $('#ncUser').value.trim(), pw = $('#ncPw').value;
+    if (!base || !user || !pw) return out('warn', 'Bitte Adresse, Benutzername und App-Passwort eintragen.');
+    if (!/^https?:\/\//.test(base)) base = 'https://' + base;
+    if (!navigator.onLine) return out('warn', 'Das iPhone ist offline.');
+    const b = $('#ncTest'); b.disabled = true; b.textContent = 'Teste …';
+    const auth = 'Basic ' + btoa(String.fromCharCode(...new TextEncoder().encode(user + ':' + pw)));
+    try {
+      const r = await fetch(`${base}/remote.php/dav/files/${encodeURIComponent(user)}/`, { method: 'PROPFIND', headers: { Authorization: auth, Depth: '0' } });
+      if (r.status === 207) out('okbox', '✓ Verbindung klappt! Eure Nextcloud lässt die App direkt durch. Damit kann ich das Senden und Laden ganz ohne Kurzbefehl einbauen. Gib kurz Bescheid.');
+      else if (r.status === 401) out('okbox', 'Die Nextcloud lässt die App durch, aber Benutzername oder App-Passwort stimmen nicht. Bitte prüfen. Wichtig: Die App ist grundsätzlich erreichbar.');
+      else out('warn', `Die Nextcloud antwortet, aber mit Status ${r.status}. Bitte diesen Wert weitergeben.`);
+    } catch (e) {
+      let reach = false; try { await fetch(base + '/status.php', { mode: 'no-cors', cache: 'no-store' }); reach = true; } catch { }
+      out('warn', reach ? 'Die Nextcloud ist erreichbar, lässt die App aber nicht direkt zugreifen (CORS ist gesperrt). Ohne Admin geht der direkte Weg also nicht, der Weg über den Kurzbefehl funktioniert trotzdem.' : 'Die Nextcloud ist unter dieser Adresse nicht erreichbar. Bitte die Adresse prüfen (so wie im Browser, z. B. https://cloud.firma.de).');
+    } finally { b.disabled = false; b.textContent = 'Verbindung testen'; }
+  };
   $('#sOcr') && ($('#sOcr').onclick = async () => {
     const b = $('#sOcr'); b.disabled = true; busy(1);
     try { await ocrFetchAll(p => { b.textContent = `Lädt … ${Math.round(p * 100)} %`; }); await kvSet('ocrReady', OCR_VER); toast('Texterkennung ist jetzt offline bereit'); renderSettings(); }
